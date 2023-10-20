@@ -1,0 +1,52 @@
+{
+    "Shadow": {
+        "description": "warm female voice",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p297"
+    },
+    "Beezle": {
+        "description": "Nasal male voice",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p376"
+    },
+    "Cypheria": {
+        "description": "fast intelligent sounding female",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p339"
+    },
+    "ChillaAlien": {
+        "description": "male voice, a bit robotic but okay",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p313"
+    },
+    "Jorah": {
+        "description": "grave male voice",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p307"
+    },
+    "Lara": {
+        "description": "Nice female voice",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p259"
+    },
+    "Scarlet": {
+        "description": "Nice female voice",
+        "voice": "tts_models/en/vctk/vits",
+        "speaker": "p343"
+    },
+    "Fritz": {
+	    "description": "One of the few German voices",
+	    "voice": "voice_conversion_models/multilingual/vctk/freevc24",
+	    "speaker":"p249"
+    },
+    "Silas": {
+	"description": "a deep, mid-tempo bariton voice",
+	"voice": "tts_models/en/vctk/vits",
+	"speaker": "p267"
+    },
+    "HAL": {
+	"description": "robotic",
+        "voice": "tts_models/en/vctk/vits",
+	"speaker": "p254"	
+    }
+}

@@ -1,0 +1,14 @@
+torch>=2.0.1
+safetensors==0.3.2
+sentencepiece>=0.1.97
+ninja==1.11.1
+flask
+flask_cors
+tts
+markdown
+pygments
+datetime
+requests
+beautifulsoup4
+summarizer
+PyPDF2

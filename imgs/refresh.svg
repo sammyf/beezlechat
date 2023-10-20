@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 750.96967 537.70435" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ <defs>
+  <filter id="d" x="-.25" y="-.25" width="1.5" height="1.5">
+   <feGaussianBlur in="SourceAlpha" result="blur" stdDeviation="10"/>
+   <feColorMatrix result="bluralpha" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0.5 0"/>
+   <feOffset dx="5" dy="5" in="bluralpha" result="offsetBlur"/>
+   <feMerge>
+    <feMergeNode in="offsetBlur"/>
+    <feMergeNode in="SourceGraphic"/>
+   </feMerge>
+  </filter>
+  <linearGradient id="a">
+   <stop stop-color="#2bd712" offset="0"/>
+   <stop stop-color="#18ac00" offset="1"/>
+  </linearGradient>
+  <radialGradient id="c" cx="121.06" cy="350.99" r="191.73" gradientTransform="matrix(-1.5207 -.03551 .03164 -1.3547 595.23 662.41)" gradientUnits="userSpaceOnUse" xlink:href="#a"/>
+  <radialGradient id="b" cx="332.03" cy="420.54" r="191.83" gradientTransform="matrix(1.5624 -.34577 .25158 1.1368 -472.54 49.913)" gradientUnits="userSpaceOnUse" xlink:href="#a"/>
+ </defs>
+ <g transform="translate(91.624 -120.72)" filter="url(#d)" stroke="#098400" stroke-linecap="round" stroke-width="3">
+  <path transform="translate(-4.5658 172.96)" d="m364.44 158.62-62.125 62.344 85.406-0.125c-0.0421 52.221-42.4 94.525-94.625 94.5-31.284-0.0151-59.014-15.215-76.219-38.625l-2.8633-3.5691-57.23 55.007c31.771 40.281 81 66.161 136.28 66.188 95.861 0.0462 173.61-77.639 173.66-173.5 2e-5 -0.0416 1e-5 -0.0834 0-0.125l70.531-0.125-108.28-107.91-8.5631-7.6483z" fill="url(#c)"/>
+  <path d="m207.85 447.55 62.125-62.344-85.406 0.125c0.0421-52.221 42.4-94.525 94.625-94.5 31.284 0.0151 59.014 15.215 76.219 38.625l2.7008 3.8214 57.582-55.133c-31.771-40.281-81.189-66.287-136.47-66.314-95.861-0.0462-173.61 77.639-173.66 173.5-2e-5 0.0416-1e-5 0.0834 0 0.125l-70.531 0.125 108.28 107.91 8.5631 7.6483z" fill="url(#b)"/>
+ </g>
+</svg>

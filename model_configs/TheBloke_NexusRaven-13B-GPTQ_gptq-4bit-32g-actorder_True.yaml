@@ -1,0 +1,5 @@
+max_seq_len: 4096
+alpha_value: 1
+user: '\n'
+bot: ''
+mode: 'raw'

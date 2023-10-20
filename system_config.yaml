@@ -1,0 +1,7 @@
+do_greeting: true
+do_tts: false
+host: 0.0.0.0
+log: true
+persona: Shadow
+port: 9706
+username: Sammy

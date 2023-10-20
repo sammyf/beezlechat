@@ -1,0 +1,4 @@
+# ignore __pycache__ folder
+bchat/
+models
+__pycache__/
