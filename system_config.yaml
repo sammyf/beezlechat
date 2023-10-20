@@ -1,7 +1,7 @@
 do_greeting: true
-do_tts: false
+do_tts: true
 host: 0.0.0.0
 log: true
-persona: Shadow
+persona: Beezle
 port: 9706
 username: Sammy

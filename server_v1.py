@@ -1,10 +1,16 @@
-import datetime
+import json
+import random
+import sys, os
+import time
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, request, send_file
 from flask_cors import CORS
 import yaml
 from model import ExLlama, ExLlamaCache, ExLlamaConfig
 from tokenizer import ExLlamaTokenizer
 from generator import ExLlamaGenerator
+from chat_prompts_v2 import prompt_formats
 import torch
 import os
 import glob
@@ -12,6 +18,9 @@ import moztts
 import re
 import markdown
 from searxing import SearXing
+import sys
+import gc
+import datetime
 
 VERSION='1'
 app = Flask(__name__)
@@ -30,10 +39,22 @@ global pre_tag
 global model
 global system_config
 global tts_config
+global gen_settings
+global extra_prune
+global min_response_tokens
+global system_prompt
+global last_context
+global redo_persona_context
+global redo_greetings
+global requrl
+
 with open('tts_config.yaml') as f:
     tts_config = yaml.safe_load(f)
 
 global mozTTS
+extra_prune = 256
+min_response_tokens = 4
+break_on_newline = True
 
 LOG_DIR = "logs/"
 LOG_FILE = "_logs.txt"
@@ -41,33 +62,50 @@ LOG_FILE = "_logs.txt"
 chat_line=""
 current_log_file = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
+""" read default values """
+with open(f'model_configs/defaults.yaml') as f:
+    default_model_config = yaml.safe_load(f)
+
+""" read Templates """
 with open('./templates/chat_line.tpl.html') as f:
     chat_line="\n".join(f.readlines())
 
 def read_system_config():
+    global system_config
     with open('system_config.yaml') as f:
-        global system_config
         system_config = yaml.safe_load(f)
 
 def write_system_config():
+    global system_config
     with open('system_config.yaml', 'w') as f:
         # Write the dictionary to the file
         yaml.dump(system_config, f)
 
+def encode_prompt(text):
+    global tokenizer, pf
+
+    add_bos, add_eos, encode_special_tokens = pf.encoding_options()
+    return tokenizer.encode(text, add_bos = add_bos, add_eos = add_eos, encode_special_tokens = encode_special_tokens)
+
 def save_log(userline, botline):
     global current_log_file
-    if system_config["log"] is True:
-        with open(f'logs/{current_log_file}.txt', 'a') as f:
-            f.write(f'user: {userline}\n{botline}\n\n')
+    try:
+        if system_config["log"] is True:
+            with open(f'logs/{current_log_file}.txt', 'a') as f:
+                f.write(f'user: {userline}\n{botline}\n\n')
+    except:
+        print("Error writing Log.")
 def exllama_configure(model_directory):
-    global parameters, persona_config, model_config, generator, tokenizer, cache, model
+    global parameters, persona_config, model_config, generator, gen_settings, tokenizer, cache, model,pf, loaded_model
     if loaded_model != model_directory:
         if model is not None:
-            ExLlama.free_unmanaged(model)
-            del model
             del cache
-            del tokenizer
             del generator
+            del tokenizer
+            del model
+            gc.collect()
+            torch.cuda.empty_cache()
+            time.sleep(1.0)
             print("model released.")
 
         tokenizer_path = os.path.join(model_directory, "tokenizer.model")
@@ -92,7 +130,7 @@ def exllama_configure(model_directory):
     generator.settings.top_p = parameters['top_p']
     generator.settings.top_k = parameters['top_k']
     #generator.model.config.max_input_len = model_config['max_seq_len']
-    generator.settings.typical = 1.0  # Disabled
+    generator.settings.typical = parameters['typical']
 
 # Used for making text xml compatible, needed for voice pitch and speed control
 table = str.maketrans({
@@ -120,25 +158,45 @@ def generate_chat_lines(user, bot):
     return rs
 
 def configure(persona):
-    global persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config
+    global persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, redo_greetings
 
-    with open(f'./personas/{persona}.yaml') as f:
-        persona_config = yaml.safe_load(f)
+    if initialized:
+        old_persona = persona_config["name"]
+    else:
+        old_persona = "sleeping"
+    try:
+         with open(f'./personas/{persona}.yaml') as f:
+            persona_config = yaml.safe_load(f)
+    except:
+         return
 
     system_config['persona'] = persona
     write_system_config()
 
     if "language" not in persona_config:
         persona_config['language'] = ''
-    # history.clear()
-    history.append("context: "+persona_config['context'])
+    #amnesia("bar")
+
     print(persona_config["model"])
     if 'parameters' not in persona_config:
         persona_config['parameters'] = 'default'
     with open(f'./parameters/{persona_config["parameters"]}.yaml') as f:
         parameters = yaml.safe_load(f)
-    with open(f'model_configs/{persona_config["model"]}.yaml') as f:
-        model_config = yaml.safe_load(f)
+
+    ## Load Model Configuration (maximum context, template, ...)
+    try:
+        with open(f'model_configs/{persona_config["model"]}.yaml') as f:
+            model_config = yaml.safe_load(f)
+    except:
+        model_config = {}
+    for k in default_model_config.keys():
+        if k not in model_config.keys():
+            model_config[k] = default_model_config[k]
+
+    with open(MODEL_PATH+persona_config['model']+'/config.json') as f:
+        cfg = json.load(f)
+        pf = prompt_formats[model_config['mode']]()
+    pf.botname = persona_config['name']
 
     # Directory containing config.json, tokenizer.model and safetensors file for the model
     exllama_configure(MODEL_PATH+persona_config['model'])
@@ -148,7 +206,7 @@ def configure(persona):
     last_character = persona_config["name"]
 
     # do the greetings
-    prompt = f'I am summoning {last_character}'
+    prompt = f'I am summoning {last_character}. You are not {old_persona} anymore.'
     greeting_prompt = ""
     cut_output_prompted = ''
     cut_output = ''
@@ -157,6 +215,7 @@ def configure(persona):
         if "system" in model_config :
                 greeting_prompt=model_config["system"]
         cut_output_prompted = f"{greeting_prompt} {cut_output}"
+    redo_persona_context = True
     history.append(prompt)
     history.append(cut_output_prompted)
     if count_tokens("\n".join(history)) >= model_config['max_seq_len']:
@@ -177,7 +236,7 @@ def htmlize(text):
     return text
 
 def fixHash27(s):
-    s=s.replace("&#x27;","'");
+    s=s.replace("&#x27;","'")
     return s
 
 def xmlesc(txt):
@@ -206,12 +265,43 @@ def generate_tts(string):
 
     return output_file
 
+def format_prompt(user_prompt, first):
+    global system_prompt, pf, persona_config, last_context, redo_persona_context, system_config, redo_greetings
+
+    now = datetime.datetime.now().strftime("%H:%M:%S on the %A %B %d %Y")
+    if first or redo_persona_context:
+        # if redo_greetings:
+        #     last_context = f"Context:  It is {now}\n{persona_config['greeting']}\n{persona_config['context']}.The user's name is {system_config['username']}\n"
+        # else:
+        last_context = f"Context:  It is {now}\n{persona_config['context']}.The user's name is {system_config['username']}\n"
+        redo_persona_context = False
+        return pf.first_prompt() \
+            .replace("<|system_prompt|>", last_context ) \
+            .replace("<|user_prompt|>", user_prompt)
+    else:
+        return pf.subs_prompt() \
+            .replace("<|user_prompt|>", f"it is {now}.\n\n{user_prompt}")
+def check_meta_cmds(prompt):
+    cmd = None
+    pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
+    matches = re.match(pattern, prompt)
+    if matches is not None and len(matches.groups()) > 0:
+        return (configure, matches.group(1))
+    if prompt.lower().startswith("forget everything."):
+        return (amnesia, "")
+    return (cmd, None)
+
 def generate(prompt):
     global persona_config, model_config, parameters, tokenizer, generator, history, initialized
+
+    (cmd, prmtr)  = check_meta_cmds(prompt)
+    if cmd != None:
+        return htmlize(cmd(prmtr))
 
     if initialized == False:
         configure(system_config['persona'])
 
+    original_prompt = prompt
     searxPrompt = Searxing.check_for_trigger(prompt)
     if searxPrompt == '':
         searxPrompt = prompt
@@ -244,8 +334,8 @@ def generate(prompt):
     # print("cut : ",cut_output)
     history.append(persona_config['name']+": "+cut_output)
     generate_tts(cut_output)
-    save_log(prompt, cut_output)
-    return generate_chat_lines(prompt, htmlize(cut_output))
+    save_log(original_prompt, cut_output)
+    return generate_chat_lines(original_prompt, htmlize(cut_output))
 
 def list_personas():
     global persona_config
@@ -260,21 +350,52 @@ def list_personas():
         rs +=f"<option value='{p}' {selected}>{p}</option>"
     return rs
 
+def set_username(uname):
+    global system_config
+    if uname.strip() == "":
+        uname = "User"
+    system_config['username'] = uname.strip()
+    write_system_config()
+    return system_config['username']
+
+def toggle_tts():
+    global system_config
+    system_config['do_tts'] = (system_config['do_tts']^True)
+    write_system_config()
+    return "toggled."
+
+def amnesia(foo):
+    global user_prompts, responses_ids
+    user_prompts = []
+    responses_ids = []
+    if foo != "bar":
+        return configure(persona_config['name'])
+
 ###
 # Routes
 
 @app.route('/', methods=['GET'])
 def get_index():
+    global system_config,requrl,chat_line
     index = ''
-    with open('html/index.html.tpl') as f:
+    with open('templates/index.tpl.html') as f:
         index=f.read()
     requrl = request.url
     if '127.0.0.1' not in requrl and 'localhost' not in requrl and '192.168.' not in requrl:
         requrl=requrl.replace('http://','https://')
     index=index.replace("{request_url}", requrl)
+    chat_line=chat_line.replace("{request_url}", requrl)
     index=index.replace("{version}",VERSION)
+    tts_onoff = "false"
+    if system_config["do_tts"]:
+        tts_onoff="true"
+    index=index.replace("{tts_toggle_state}", tts_onoff)
     return index
     #send_file("index.html", mimetype='text/html')
+
+@app.route('/set_username/', methods=['GET'])
+def set_username_action():
+    return set_username( request.form['username'])
 
 @app.route('/voice/<rnd>', methods=['GET'])
 def get_voice(rnd):
@@ -283,6 +404,10 @@ def get_voice(rnd):
 @app.route('/css/styles.css', methods=['GET'])
 def get_css():
     return send_file("css/styles.css", mimetype='text/css')
+
+@app.route('/css/codehilite.css', methods=['GET'])
+def get_codehilite():
+    return send_file("css/codehilite.css", mimetype='text/css')
 
 @app.route('/js/script.js', methods=['GET'])
 def get_js():
@@ -293,6 +418,10 @@ def get_js():
 def configure_action():
     persona = request.form['persona']
     return configure(persona)
+
+@app.route('/toggle_tts', methods=['GET','POST'])
+def toggle_tts_action():
+    return toggle_tts()
 
 @app.route('/list_personas', methods=['GET','POST'])
 def list_personas_action():
@@ -325,6 +454,7 @@ def shutdown_action():
     exit()
 
 if __name__ == '__main__':
+    read_system_config()
     torch.set_grad_enabled(False)
     torch.cuda._lazy_init()
     initialized = False
@@ -332,7 +462,8 @@ if __name__ == '__main__':
     loaded_model = ""
     model = None
     pre_tag = False
+    redo_persona_context = True
+    redo_greetings = True
     Searxing = SearXing()
-    read_system_config()
     configure(system_config['persona'])
     app.run(host=system_config['host'], port=system_config['port'])
