@@ -1,8 +1,0 @@
-debug: true
-do_greeting: true
-do_tts: true
-host: 0.0.0.0
-log: false
-persona: Diem
-port: 7127
-username: Dweezil Moon

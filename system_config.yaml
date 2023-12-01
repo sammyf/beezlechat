@@ -1,7 +1,0 @@
-do_greeting: true
-do_tts: true
-host: 0.0.0.0
-log: true
-persona: Olivia
-port: 9706
-username: Sammy
