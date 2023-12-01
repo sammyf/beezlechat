@@ -124,6 +124,13 @@ div.bot_margin{
     border: 0px;
 }
 
+#modellist {
+    position: fixed;
+    top:40px;
+    right:10px;
+    background-color: rgba(138, 96, 115, 0.5);
+}
+
 #charlist {
     position: fixed;
     top:10px;
@@ -137,6 +144,15 @@ div.bot_margin{
     background-color: rgba(96,138,125,0.5);
     color: #ffffff;
     border: 0px;
+}
+
+#models {
+    width:200px;
+    font-weight: normal;
+    background-color: rgba(121, 96, 138, 0.5);
+    color: #ffffff;
+    border: 0px;
+    font-size: x-small;
 }
 
 option {

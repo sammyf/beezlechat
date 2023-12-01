@@ -1,3 +1,4 @@
+import math
 import os.path
 import string
 import requests
@@ -202,7 +203,7 @@ class SearXing:
                     except:
                         pass
         if prompt.strip() == url:
-            text += f"\nSummarize the content from this url : {url}"
+            text += f"{prompt}\ncontent from this url : {url}\n"
         return text
 
     def read_pdf(self, fname):
@@ -242,23 +243,26 @@ class SearXing:
         rs = self.trim_to_x_words(rs, self.config["max_text_length"])
         return f"This is the content of the file '{fname}':\n{rs}"
 
-    def check_for_trigger(self, prompt):
-        fn = self.extract_file_name(prompt)
-        url = self.extract_url(prompt)
-        q = self.extract_query(prompt)
+    def check_for_trigger(self, _prompt, maxlen, count_token):
+        fn = self.extract_file_name(_prompt)
+        url = self.extract_url(_prompt)
+        q = self.extract_query(_prompt)
 
         print(f"Filename found : '{fn}'\nQuery found : {q[0]}\nUrl found : {url}\n")
         if fn != "":
-            prompt = self.open_file(fn) + self.CONTENT_MARKER+ prompt
+            content = self.open_file(fn)
         elif url != "":
-            prompt = self.get_page(url, prompt)  + self.CONTENT_MARKER+ prompt
+            content = self.get_page(url, _prompt)
         elif q[0] != "":
-            searx_results = self.call_searx_api(q[0])
-            # Pass the SEARX results back to the LLM.
-            if q[1] == "":
-                q[1] = "Summarize the results."
-            prompt = prompt + "\n"  + self.CONTENT_MARKER+ searx_results  + self.CONTENT_MARKER+ q[1]
+            content = self.call_searx_api(q[0])
         else:
-            prompt = ""
+            content = ""
+
+        print(count_token(content),"content : \n",content,)
+        prompt = content + self.CONTENT_MARKER + _prompt
+        if count_token(prompt) > maxlen:
+            content = self.trim_to_x_words( prompt, maxlen - (maxlen*0.1))
+            prompt = content + " {...}" + self.CONTENT_MARKER + _prompt
+
         return prompt
 

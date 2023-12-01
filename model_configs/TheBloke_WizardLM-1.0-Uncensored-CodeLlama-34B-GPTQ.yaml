@@ -1,5 +1,5 @@
-max_seq_len: 4096
+max_seq_len: 8192
 alpha_value: 1
 user: 'USER: %%prompt%%'
 bot: 'ASSISTANT: '
-mode: 'raw'
+mode: 'codeup'

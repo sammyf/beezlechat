@@ -17,10 +17,16 @@
     <input type="button" id="toggle_tts" name="toggle_tts" value="{tts_onoff}" hx-trigger="click" hx-post="{request_url}/toggle_tts" hx-indicator="#spinner" >
     <label for="toggle_tts"></label>
 </div>
+<div id="modellist">
+    <form id="modelform">
+        <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">
+        <select id="models" name="models" size="auto" hx-post="{request_url}/load_models" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+    </form>
+</div>
 <div id="charlist">
     <form id="charform">
         <img class="refresh" id="refresh_personas" src="/imgs/refresh.png" hx-post="{request_url}/list_personas" hx-trigger="click"  hx-swap="innerHTML" hx-target="#persona" hx-indicator="#spinner">
-        <select id="persona" name="persona" size="10" hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+        <select id="persona" name="persona" size="auto" hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
     </form>
 </div>
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
@@ -38,21 +44,61 @@
             document.getElementById("toggle_tts").value="TTS OFF";
         }
     }
-
     let toggle_tts={tts_toggle_state};
+    let toggle_autonomy=false;
+
+    // autonomy routine
+    const minSeconds = 60;
+    const maxSeconds = 380;
+    let timer = undefined
+    let randomSeconds = 0
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    function autonomy() {
+        document.getElementById("prompt").value = "[The user has been Away From Keyboard for " + randomSeconds.toString() + " seconds]"
+        document.getElementById("sendbutton").click()
+        if (toggle_autonomy) {
+            autonomyTimer()
+        }
+    }
+
+    function autonomyTimer() {
+        clearTimeout(timer);
+        randomSeconds = getRandomInt(minSeconds, maxSeconds);
+        timer = setTimeout(() => {
+            autonomy();
+        }, randomSeconds * 1000);
+    }
+
+    if(toggle_autonomy) {
+        autonomyTimer()
+    }
+
+    // standard prompt routine
     document.getElementById("prompt").addEventListener('keyup', (event) => { if ((event.code == "Enter") && (!event.shiftKey)) {
         document.getElementById("sendbutton").click()
        }
       }
     );
 
+    document.addEventListener('htmx.beforeRequest', function(evt) {
+        clearTimeout(timer);
+    })
+
     document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if(evt.target.id == "persona") {
+            document.getElementById("refresh_models").click()
+        }
         document.getElementById("prompt").value=""
         if( toggle_tts) {
             document.getElementById("tts").src="/voice/rnd="+Math.random().toString();
         }
         window.scrollTo(0, document.body.scrollHeight);
         document.getElementById("prompt").focus()
+        if(toggle_autonomy) {
+            autonomyTimer()
+        }
     })
 
     document.addEventListener('htmx:afterRequest', function(evt) {

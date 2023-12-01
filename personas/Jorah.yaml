@@ -5,4 +5,4 @@ model: "TheBloke_Pygmalion-2-13B-GPTQ_gptq-4bit-32g-actorder_True"
 voice: "tts_models/en/vctk/vits"
 speaker: "p307"
 parameters: "free_spirit"
-max_answer_token: 1500
+max_answer_token: 512

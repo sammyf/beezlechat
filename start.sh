@@ -1,3 +1,3 @@
 #!/bin/bash
-source bchat/bin/activate && python server_v$1.py
+source bchat/bin/activate && python server_v2.py
 

@@ -14,4 +14,5 @@ DEST=$(echo "$MODEL" | sed "s/\//_/g" )
 echo $DEST
 mkdir "models/$DEST"
 echo "Downloading $MODEL $REV to models/$DEST"
+echo huggingface-cli download $MODEL $REV --local-dir "models/$DEST" --local-dir-use-symlinks False
 huggingface-cli download $MODEL $REV --local-dir "models/$DEST" --local-dir-use-symlinks False

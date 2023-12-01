@@ -1,5 +1,0 @@
-max_seq_len: 4096
-alpha_value: 1
-user: "<|im_start|>user "
-bot: "<|im_end|>\n\n<|im_start|>assistant "
-mode: 'chatml'

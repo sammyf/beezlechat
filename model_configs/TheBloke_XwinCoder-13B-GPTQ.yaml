@@ -1,0 +1,7 @@
+max_seq_len: 8192
+alpha_value: 1
+system: '<system>: %%prompt%%\n'
+user: '<user>: %%prompt%%\n'
+bot: '<AI>: 
+'
+mode: 'raw'

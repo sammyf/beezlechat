@@ -1,4 +1,24 @@
 # ignore __pycache__ folder
 bchat/
 models
+.env
+rpg_system_config.yaml
+perplexity.py
+prompt_chatbort.txt
+generator.py
+globals.py
+cuda_ext.py
+lora.py
+model.py
+model_init.py
+ltm/memories.db
+ltm/memories.sqbpro
+alt_generator.py
+ltm/
+logs/*
+outputs/*
+xtts_source
+searxing_config.yaml
+test-sentence.txt
+tokenizer.py
 __pycache__/

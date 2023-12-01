@@ -5,6 +5,7 @@ ninja==1.11.1
 flask
 flask_cors
 tts
+pydub
 markdown
 pygments
 datetime
@@ -12,3 +13,4 @@ requests
 beautifulsoup4
 summarizer
 PyPDF2
+exllamav2

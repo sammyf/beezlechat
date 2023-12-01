@@ -1,6 +1,0 @@
-max_seq_len: 4096
-alpha_value: 1
-user: '<|user|>'
-bot: '<|model|>'
-system: '<|system|>'
-mode: 'raw'

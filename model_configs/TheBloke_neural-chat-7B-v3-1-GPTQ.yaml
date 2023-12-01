@@ -1,0 +1,11 @@
+max_seq_len: 4096
+alpha_value: 1
+mode: 'raw'
+system: '### System:
+
+%%prompt'
+user: '### User: 
+
+%%prompt%%'
+bot: '### Assistant: 
+'
