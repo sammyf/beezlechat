@@ -1,0 +1,7 @@
+do_greeting: true
+do_tts: true
+host: 0.0.0.0
+log: false
+persona: Ezza
+port: 9090
+username: Sammy
