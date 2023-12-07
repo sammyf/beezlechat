@@ -313,7 +313,7 @@ def load_model(model):
     if(loaded_model != persona_config["model"]):
         tabby_unload()
         tabby_load_model(model)
-
+    loaded_model == persona_config["model"]
     print("\n\nloaded model :", loaded_model,"\n")
 
 def configure(persona):
@@ -444,7 +444,11 @@ def cmd_remember(keywords, gen=True):
     global persona_config, persona_dbid, model_config
     res = []
     print("keywords received", keywords)
+    print(keywords.split(" "))
     for kw in keywords.split(" "):
+        kw = kw.strip()
+        if kw == "":
+            continue
         print("looking for kw : ",kw)
         connection = sqlite3.connect("ltm/memories.db")
         cursor = connection.cursor()
@@ -480,7 +484,8 @@ def check_meta_answer(output):
             print("pattern:",pattern)
             print('output', output)
             res = re.search(pattern, output, re.MULTILINE)
-            print("regex results:\n",res)
+            print("\nregex results:\n",res)
+            print("\nregex groups :\n",res.group(1))
             try:
                 keywords = res.group(1).strip()
             except:
