@@ -82,17 +82,32 @@ with open('./templates/chat_line.tpl.html') as f:
     chat_line="\n".join(f.readlines())
 
 def read_system_config():
+    """
+    Reads the system configuration from the 'system_config.yaml' file.
+
+    :return: None
+    """
     global system_config
     with open('system_config.yaml') as f:
         system_config = yaml.safe_load(f)
 
 def write_system_config():
+    """
+    Write the system_config dictionary to the system_config.yaml file.
+
+    :return: None
+    """
     global system_config
     with open('system_config.yaml', 'w') as f:
         # Write the dictionary to the file
         yaml.dump(system_config, f)
 
 def retrieve_persona_dbid():
+    """
+    Retrieves the database id of the persona.
+
+    :return: The database id of the persona.
+    """
     global persona_config,persona_dbid
     connection = sqlite3.connect("ltm/memories.db")
     cursor = connection.cursor()
@@ -102,6 +117,11 @@ def retrieve_persona_dbid():
     connection.close()
 
 def generate_ability_string():
+    """
+    Generate ability string.
+
+    :return: None
+    """
     global persona_config, abilities, ability_string
     with open('abilities.yaml') as f:
         abilities = yaml.safe_load(f)
@@ -112,6 +132,11 @@ def generate_ability_string():
         print(ability_string)
 
 def store_memory(summary,keywords):
+    """
+    :param summary: A string representing the summary of the memory.
+    :param keywords: A string representing the keywords associated with the memory.
+    :return: None
+    """
     global history, persona_dbid
     print("\n\nstoring Memories")
     if (len(generate_history_string())<=MINIMUM_MEMORABLE):
@@ -128,6 +153,12 @@ def store_memory(summary,keywords):
     connection.close()
 
 def save_log(userline, botline):
+    """
+    :param userline: The line of text representing the user's input.
+    :param botline: The line of text representing the bot's response.
+    :return: None
+
+    """
     global current_log_file
     try:
         if system_config["log"] is True:
@@ -137,6 +168,18 @@ def save_log(userline, botline):
         print("Error writing Log.")
 
 def tabby_load_model(model):
+    """
+    Load the specified model.
+
+    :param model: The name of the model to load.
+    :return: None
+
+    Example usage:
+        >>> tabby_load_model("my_model")
+        Loading my_model
+        200
+        {"message": "Model loaded successfully"}
+    """
     global model_config, loaded_model
     print(f"Loading {model}")
     url = f"{oai_config['server']}/v1/model/load"
@@ -166,6 +209,11 @@ def tabby_load_model(model):
     print(response.text)
 
 def tabby_unload():
+    """
+    Unloads the Tabby model.
+
+    :return: None
+    """
     print(f"Unloading {model}")
     url = f"{oai_config['server']}/v1/model/unload"
     headers = {
@@ -175,7 +223,14 @@ def tabby_unload():
     response = requests.get(url, headers=headers)
     print(response.status_code)
     print(response.text)
+
 def tabby_generate(prompt):
+    """
+    Generate a response using the Tabby API.
+
+    :param prompt: The prompt for generating the response.
+    :return: The generated response.
+    """
     global persona_config,system_config
     parameters['model']=persona_config['model']
     parameters['prompt']=prompt
@@ -198,6 +253,10 @@ def tabby_generate(prompt):
 
 
 def tabby_count_tokens(prompt):
+    """
+    :param prompt: The text prompt to be tokenized.
+    :return: The number of tokens in the given prompt.
+    """
     url = f"{oai_config['server']}/v1/token/encode"
     headers = {
         "Content-Type": "application/json",
@@ -223,9 +282,18 @@ table = str.maketrans({
 })
 
 def count_tokens(txt):
+    """
+    :param txt: the string to count tokens from
+    :return: the number of tokens in the string
+    """
     return tabby_count_tokens(txt)
 
 def generate_chat_lines(user, bot):
+    """
+    :param user: The user's message to be replaced in the chat line.
+    :param bot: The bot's response to be replaced in the chat line.
+    :return: The generated chat line with user and bot messages replaced.
+    """
     rs = chat_line.replace("%%user%%", user)\
         .replace("%%bot%%", bot)\
         .replace('%%botname%%', persona_config["name"])
@@ -236,6 +304,11 @@ finds out at which index the history buffer contains at least half of the contex
 this is needed to create memories and to truncate the history buffer accordingly
 """
 def find_half_of_context():
+    """
+    Find the cutting point in the history list that corresponds to half the number of tokens in the model configuration.
+
+    :return: The cutting point index in the history list.
+    """
     global history, model_config
     half = model_config['max_seq_len']/2
     print(f"looking for {half} tokens ...")
@@ -249,6 +322,11 @@ def find_half_of_context():
     return cutting_point
 
 def generate_history_string():
+    """
+    Generates a formatted string representing the conversation history.
+
+    :return: A string representing the conversation history.
+    """
     global model_config, history
     rs = ""
     for h in history:
@@ -264,6 +342,11 @@ def generate_history_string():
     return rs
 
 def truncate_history():
+    """
+    Truncates the chat history to half its original length and adds a summary of the discussion to the remaining history.
+
+    :return: None
+    """
     global history, persona_config
     current_history = history
     print("len full:",count_tokens(generate_history_string()))
@@ -279,6 +362,12 @@ def truncate_history():
     print("len with context :",count_tokens(generate_history_string()))
 
 def generate_keywords(prompt=""):
+    """
+    Generate keywords based on the provided prompt.
+
+    :param prompt: optional prompt string (default: "")
+    :return: tuple containing the summary and keywords generated
+    """
     summary=prompt
     if prompt == "":
         summary=generate("Please summarize the discussion this far.", True)
@@ -287,17 +376,48 @@ def generate_keywords(prompt=""):
     return(summary, keywords)
 
 def generate_memory():
+    """
+    Generate Memory
+
+    This method generates memory based on the retrieved summary and keywords. It stores the memory in the global `history` variable.
+
+    :return: The generated summary of the memory.
+    """
     global history
     (summary, keywords) = generate_keywords()
     store_memory(summary,keywords)
     return summary
 
 def context_management():
+    """
+    This method is used for context management. It checks if the number of tokens in the history string generated is greater than or equal to the maximum allowed sequence length minus the
+    * maximum number of answer tokens and the modulo of the maximum sequence length with 10. If the condition is true, it prints "Context Overflow" and truncates the history.
+
+    :return: None
+    """
     if count_tokens(generate_history_string()) >= (model_config['max_seq_len']-(persona_config['max_answer_token']+(model_config['max_seq_len']%10))):
      print("Context Overflow.")
      truncate_history()
 
 def load_model(model):
+    """
+    :param model: The name of the model to load.
+    :return: None
+
+    This method is used to load a specific model using the provided name. It first loads the model configuration from a YAML file based on the given model name. If the file does not exist
+    * or cannot be loaded, an empty dictionary is used as the model configuration.
+
+    Next, it checks if any keys in the default model configuration are missing in the loaded model configuration and adds them if necessary. It also replaces placeholders in the 'bot' and
+    * 'user' values of the model configuration with the appropriate values from the persona and system configurations, respectively.
+
+    If the loaded model is different from the model currently stored in the persona configuration, the current model is unloaded and the specified model is loaded using the 'tabby_load_model
+    *' function.
+
+    Finally, the loaded model is printed for verification.
+
+    Example usage:
+    load_model("model_name")
+    """
     global model_config, system_config, persona_config, loaded_model
     ## Load Model Configuration (maximum context, template, ...)
     try:
@@ -317,6 +437,10 @@ def load_model(model):
     print("\n\nloaded model :", loaded_model,"\n")
 
 def configure(persona):
+    """
+    :param persona: The name of the persona to configure. This is used to load the corresponding persona configuration file located in the "personas" directory.
+    :return: The result of calling the generate_chat_lines method with the configured prompt and cut_output.
+    """
     global old_persona, persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, redo_greetings, persona_dbid, loaded_model
 
     if initialized:
@@ -386,6 +510,12 @@ def configure(persona):
     return generate_chat_lines(prompt, htmlize(cut_output))
 
 def htmlize(text):
+    """
+    Convert the plaintext `text` into HTML format.
+
+    :param text: The plaintext to be converted.
+    :return: The converted HTML string.
+    """
     # pattern = "```(.+?)```"
     # text = re.sub(pattern,"<code>\1</code>",text)
     text = markdown.markdown(text, extensions=['fenced_code', 'codehilite'])
@@ -393,13 +523,28 @@ def htmlize(text):
     return text
 
 def fixHash27(s):
+    """
+    Fixes the hash symbol encoded as "&#x27;" and replaces it with the character "'".
+
+    :param s: the input string with encoded hash symbol "&#x27;"
+    :return: the fixed string with hash symbol replaced
+    """
     s=s.replace("&#x27;","'")
     return s
 
 def xmlesc(txt):
+    """
+    :param txt: The input text to be escaped
+    :return: The escaped text
+
+    """
     return txt.translate(table)
 
 def generate_tts(string):
+    """
+    :param string: The text to be converted to speech.
+    :return: The path of the generated audio file.
+    """
     global persona_config, mozTTS, system_config
 
     if system_config['do_tts'] != True:
@@ -418,6 +563,12 @@ def generate_tts(string):
     return output_file
 
 def check_meta_cmds(prompt):
+    """
+    Check if prompt matches any meta commands and return a corresponding action.
+
+    :param prompt: the input prompt to be checked
+    :return: a tuple containing the command and additional parameters if applicable
+    """
     cmd = None
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
     matches = re.match(pattern, prompt)
@@ -431,16 +582,36 @@ def check_meta_cmds(prompt):
     return (cmd, None)
 
 def cmd_query(keywords):
+    """
+    .. function:: cmd_query(keywords)
+
+        Performs a search query on the internet based on the given keywords.
+
+        :param keywords: The keywords to be used for the search query.
+        :type keywords: str
+
+        :return: The generated search results.
+        :rtype: str
+    """
     global SearXing, model_config
     prompt = "Search the internet for "+keywords
     return generate(Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens), True)
 
 def cmd_surf(url):
+    """
+    :param url: The URL of the website to surf
+    :return: The generated summary of the website content
+    """
     global SearXing, model_config
     prompt = "summarize "+url
     return generate(Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens), True)
 
 def cmd_remember(keywords, gen=True):
+    """
+    :param keywords: (str) The keywords to search for memories.
+    :param gen: (bool) Whether to generate a response if no memory is found. Default is True.
+    :return: (str) The response.
+    """
     global persona_config, persona_dbid, model_config
     res = []
     print("keywords received", keywords)
@@ -469,6 +640,13 @@ def cmd_remember(keywords, gen=True):
     else:
         return "you remember that on the "+res[0]+" this happened :"+res[1]
 def check_meta_answer(output):
+    """
+        :param output: The output string to check for command matches
+        :return: The modified output string or the original output string
+
+        This method checks if any of the commands in the abilities list are present in the output string. If a command is found, it searches for the corresponding keyword(s) following the
+    * command and returns the modified output string with those keywords processed by executing the corresponding function.
+        """
     global abilities
     fn = {
         "search":cmd_query,
@@ -554,6 +732,11 @@ def generate(prompt, raw=False):
     return generate_chat_lines(original_prompt, htmlize(cut_output))
 
 def list_personas():
+    """
+    Return a formatted string containing HTML code for a dropdown list of personas.
+
+    :return: A string containing HTML code for the dropdown list of personas.
+    """
     global persona_config
     personas = glob.glob("./personas/*.yaml")
     personas.sort()
@@ -567,6 +750,11 @@ def list_personas():
     return rs
 
 def list_models():
+    """
+    Return a string containing HTML options for selecting model configurations.
+
+    :return: A string containing HTML options for selecting model configurations.
+    """
     global model_config,loaded_model
     models = glob.glob("./model_configs/*.yaml")
     models.sort()
@@ -580,6 +768,19 @@ def list_models():
     return rs
 
 def set_username(uname):
+    """
+    ``set_username(uname)``
+    -----------------------
+
+    Sets the username for the system configuration.
+
+    Parameters:
+        uname (str): The username to be set.
+
+    Returns:
+        str: The updated username.
+
+    """
     global system_config
     if uname.strip() == "":
         uname = "User"
@@ -588,12 +789,25 @@ def set_username(uname):
     return system_config['username']
 
 def toggle_tts():
+    """
+    Toggle TTS Mode
+
+    This method toggles the TTS (Text To Speech) mode in the system configuration.
+
+    :return: A string indicating the status of the TTS mode after toggling.
+    """
     global system_config
     system_config['do_tts'] = (system_config['do_tts']^True)
     write_system_config()
     return "toggled."
 
 def amnesia(foo):
+    """
+    Clear the history and reset token count if foo is not equal to "bar".
+
+    :param foo: A string value.
+    :return: None.
+    """
     global user_prompts, responses_ids, history, token_count
     history = []
     token_count = 0
@@ -604,6 +818,12 @@ def amnesia(foo):
 # Routes
 @app.route('/', methods=['GET'])
 def get_index():
+    """
+    Get the contents of the index.html file, replace the placeholders with appropriate values,
+    and return the modified content.
+
+    :return: The modified content of the index.html file.
+    """
     global system_config,requrl,chat_line
     index = ''
     with open('templates/index.tpl.html') as f:
@@ -623,70 +843,176 @@ def get_index():
 
 @app.route('/set_username/', methods=['GET'])
 def set_username_action():
+    """
+    Perform the action of setting the username.
+
+    :return: None
+    """
     return set_username( request.form['username'])
 
 @app.route('/voice/<rnd>', methods=['GET'])
 def get_voice(rnd):
+    """
+    :param rnd: A random number used to generate the voice.
+    :type rnd: str
+
+    :return: The voice file in WAV format.
+    :rtype: file
+
+    :raises: FileNotFoundError if the voice file is not found.
+
+    This method generates a voice file using the given `rnd` parameter
+    and returns it as a WAV file.
+    """
     return send_file("outputs/tts.wav", mimetype='audio/x-wav')
 
 @app.route('/css/styles.css', methods=['GET'])
 def get_css():
+    """
+    Returns the styles.css file.
+
+    :return: The styles.css file as a response.
+    """
     return send_file("css/styles.css", mimetype='text/css')
 
 @app.route('/css/codehilite.css', methods=['GET'])
 def get_codehilite():
+    """
+    This method returns the codehilite CSS file.
+
+    :return: The codehilite CSS file.
+    """
     return send_file("css/codehilite.css", mimetype='text/css')
 
 @app.route('/js/script.js', methods=['GET'])
 def get_js():
+    """
+    Returns the content of the 'js/script.js' file as a response to a GET request made to '/js/script.js'.
+
+    :return: The content of the 'js/script.js' file as a response object with the mimetype set to 'application/javascript'.
+    """
     return send_file("js/script.js", mimetype='application/javascript')
 
 # if 'X-CSRF-Token' in request.headers:
 @app.route('/configure', methods=['POST'])
 def configure_action():
+    """
+    Configure action method.
+
+    :return: None
+    """
     persona = request.form['persona']
     return configure(persona)
 
 @app.route('/list_models', methods=['GET','POST'])
 def list_models_action():
+    """
+    Returns a list of models.
+
+    :return: a list of models.
+    """
     return list_models()
 
 @app.route('/change_models', methods=['GET','POST'])
 def change_models_action():
+    """
+    Change the current model and load it into memory.
+
+    :return: None
+    """
     model = request.form['model']
     load_model(model)
     list_models()
 
 @app.route('/toggle_tts', methods=['GET','POST'])
 def toggle_tts_action():
+    """
+    Toggles the text-to-speech (TTS) action.
+
+    :return: None
+    """
     return toggle_tts()
 
 @app.route('/list_personas', methods=['GET','POST'])
 def list_personas_action():
+    """
+    Returns a list of personas.
+
+    :return: A list of personas.
+    :rtype: list
+    """
     return list_personas()
 
 @app.route('/get_face/<persona>', methods=['GET'])
 def get_face_action(persona):
+    """
+        :param persona: The persona of the face image to retrieve. It is a string representing the persona.
+        :return: The face image associated with the specified persona in PNG format.
+    """
     filename=f"./personas/{persona}.png"
     return send_file(filename, mimetype='image/png')
 
 @app.route('/imgs/spinner.gif', methods=['GET'])
 def get_img_action():
+    """
+    Returns the image file specified by the URL route '/imgs/spinner.gif' with the GET method.
+
+    :return: The image file specified by the URL route.
+    """
     filename=f"./imgs/spinner.gif"
     return send_file(filename, mimetype='image/gif')
 
 @app.route('/imgs/refresh.png', methods=['GET'])
 def get_refresh_action():
+    """
+    This method handles the GET request to retrieve the refresh action image.
+
+    :return: The refresh action image file.
+    """
     filename=f"./imgs/refresh.png"
     return send_file(filename, mimetype='image/png')
 
 @app.route('/generate', methods=['POST'])
 def generate_action():
+    """
+    Generate an action based on user input.
+
+    :return: None
+    """
     prompt = request.form['prompt']
     return generate(prompt)
 
 @app.route('/rpgenerate', methods=['POST'])
 def rpgenerate_action():
+    """
+    Generates an action based on the provided prompt.
+
+    :return: The generated action.
+
+    :raises: `KeyError` if the required fields are missing in the request data.
+
+    POST Parameters:
+    - `prompt` (string): The prompt for generating the action.
+    - `amnesia` (boolean): Whether to trigger amnesia or not.
+    - `npc_name` (string): The name of the NPC.
+    - `player_name` (string): The name of the player.
+
+    Example Usage:
+    ```python
+    import requests
+
+    url = "http://example.com/rpgenerate"
+    data = {
+        'prompt': 'Go to the village and search for clues.',
+        'amnesia': True,
+        'npc_name': 'John Doe',
+        'player_name': 'Jane Doe'
+    }
+    response = requests.post(url, json=data)
+    action = response.text
+    print(action)
+    ```
+    """
     data = request.get_json()
     prompt = data['prompt']
     print(prompt)
@@ -698,6 +1024,11 @@ def rpgenerate_action():
 
 @app.route( '/speak', methods=['POST'])
 def speak_action():
+    """
+    Sends a text to be spoken by the server's configured speaker.
+
+    :return: The generated spoken voice.
+    """
     data = request.get_json()
     persona_config['speaker'] = data['voice']
     generate_tts(data['text'])
@@ -705,12 +1036,24 @@ def speak_action():
 
 @app.route('/shutdown', methods=['GET'])
 def shutdown_action():
+    """
+    Performs shutdown actions.
+
+    :return: None
+    """
     generate_memory()
     print("shutting down.")
     exit()
     #return True
 
 def on_terminate(signum, frame):
+    """
+    Handle termination signal.
+
+    :param signum: the signal number
+    :param frame: the current stack frame
+    :return: None
+    """
     global connection
     generate_memory()
     print("Terminating...")
