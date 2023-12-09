@@ -177,6 +177,17 @@ class SearXing:
         return rs
 
     def get_page(self, url, prompt):
+        """
+        :param url: the URL of the web page to retrieve content from
+        :param prompt: a prompt to include in the returned text
+        :return: the content of the web page, including trimmed text and prompt information
+
+        Retrieves the content from the specified URL and returns it as a formatted text.
+        If the web page has readable content, the text will be trimmed to the specified
+        maximum length and a prompt will be included. If the web page doesn't have any
+        readable content, it will return a default message along with any relevant meta
+        information found.
+        """
         text = f"The web page at {url} doesn't have any useable content. Sorry."
         try:
             response = requests.get(url)
@@ -207,6 +218,10 @@ class SearXing:
         return text
 
     def read_pdf(self, fname):
+        """
+        :param fname: The file path to the PDF file.
+        :return: The extracted text from the PDF file as a string.
+        """
         parts = []
 
         def visitor_body(text, cm, tm, fontDict, fontSize):
@@ -226,6 +241,22 @@ class SearXing:
         return rs
 
     def open_file(self, fname):
+        """
+        This method opens a file and reads its content.
+
+        :param fname: The name of the file to be opened.
+        :return: The content of the file as a string.
+
+        :raises ValueError: If the filename does not have a valid format.
+        :raises FileNotFoundError: If the file does not exist or cannot be opened.
+
+        Example usage:
+            >>> obj = MyClass()
+            >>> content = obj.open_file("example.txt")
+            >>> print(content)
+            This is the content of the file 'example.txt':
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        """
         rs = ""
         print(f"Reading {fname}")
         if fname.lower().endswith(".pdf"):
@@ -244,6 +275,44 @@ class SearXing:
         return f"This is the content of the file '{fname}':\n{rs}"
 
     def check_for_trigger(self, _prompt, maxlen, count_token):
+        """
+        :param _prompt: The input prompt string.
+        :param maxlen: The maximum length of the resulting prompt.
+        :param count_token: The function used to count the number of tokens in a string.
+        :return: The processed prompt string.
+
+        This method takes an input prompt string, extracts the file name, URL, and query from the prompt, and performs different actions based on the extracted values. It then constructs a new
+        * prompt string with additional content and returns the processed prompt.
+
+        The input prompt string can include various information like file names, URLs, and queries. The method first extracts the file name using the `extract_file_name` method, the URL using
+        * the `extract_url` method, and the query using the `extract_query` method.
+
+        After extracting the necessary information, the method prints the extracted file name, query, and URL for debugging purposes.
+
+        Next, the method checks if the file name is not empty. If it is not empty, it calls the `open_file` method to fetch the content of the file. If the URL is not empty, it calls the `get
+        *_page` method to fetch the content of the web page. If the query is not empty, it calls the `call_searx_api` method to fetch the content from a search engine.
+
+        If none of the above conditions are met, the content is set to an empty string.
+
+        The method then prints the count of tokens in the content and the content itself for debugging purposes.
+
+        The prompt is constructed by concatenating the content, a specific marker (defined as `self.CONTENT_MARKER`), and the original prompt string.
+
+        If the count of tokens in the prompt exceeds the maximum length (`maxlen`), the prompt is trimmed using the `trim_to_x_words` method. The trim length is calculated based on `maxlen`
+        * minus 10% of `maxlen`. The trimmed prompt is then concatenated with a placeholder ("{...}"), the content marker, and the original prompt.
+
+        Finally, the processed prompt is returned.
+
+        Example usage:
+            # Create an instance of the class
+            instance = ClassName()
+
+            # Call the method with the required parameters
+            result = instance.check_for_trigger("example prompt", 100, count_token_function)
+
+            # Print the result
+            print(result)
+        """
         fn = self.extract_file_name(_prompt)
         url = self.extract_url(_prompt)
         q = self.extract_query(_prompt)
