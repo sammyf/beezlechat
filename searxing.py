@@ -59,6 +59,10 @@ class SearXing:
             self.config = yaml.safe_load(f)
 
     def call_searx_api(self, query):
+        """
+        :param query: The query string to search for in the SEARX server.
+        :return: A string representing the search results from the SEARX server.
+        """
         url = f"{self.config['searx_server']}?q={query}&format=json"
         try:
             response = requests.get(url)
@@ -100,6 +104,14 @@ class SearXing:
 
     ## returns only the first URL in a prompt
     def extract_url(self, prompt):
+        """
+        Extracts the first URL found in a given prompt.
+
+        :param prompt: The text containing URLs.
+        :type prompt: str
+        :return: The first URL found in the prompt. If no URL is found, an empty string is returned.
+        :rtype: str
+        """
         url = ""
         # Regular expression to match URLs
         url_pattern = r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
@@ -110,6 +122,17 @@ class SearXing:
         return url
 
     def trim_to_x_words(self, prompt: string, limit: int):
+        """
+        Trims a given prompt to a specified number of words.
+
+        :param prompt: The prompt to be trimmed.
+        :param limit: The desired number of words.
+        :return: The trimmed prompt.
+
+        Example:
+            >>> trim_to_x_words("Lorem ipsum dolor sit amet", 3)
+            'dolor sit amet'
+        """
         rev_rs = []
         words = prompt.split(" ")
         rev_words = reversed(words)
@@ -122,6 +145,11 @@ class SearXing:
         return " ".join(rs)
 
     def extract_query(self, prompt):
+        """
+        :param prompt: The prompt from which the query needs to be extracted.
+        :return: A list containing two elements. The first element is the extracted query, and the second element is a modified version of the query to use as a search prompt.
+
+        """
         rs = ["", ""]
         # Define your sentence-terminating symbols
         terminators = [".", "!", "?"]
@@ -159,6 +187,25 @@ class SearXing:
         return rs
 
     def extract_file_name(self, prompt):
+        """
+        :param prompt: The input prompt string containing the file query.
+        :return: The extracted file name from the prompt string, or an empty string if no file name is found.
+
+        The `extract_file_name` method takes a prompt string as input and extracts the file name from it. It searches for specific query prompts defined in the `FILE_QUERY_PROMPTS` attribute
+        * of the class instance and attempts to find the file name within the query.
+
+        If a file name is found, it is returned. If no file name is found, an empty string is returned.
+
+        The method uses regular expressions to perform the search and extraction. It is case-insensitive, meaning it will match file queries regardless of the case of the query prompts.
+
+        Example usage:
+
+        ```
+        prompt = "Please open the file 'example.txt'"
+        file_name = instance.extract_file_name(prompt)
+        print(file_name)  # Output: example.txt
+        ```
+        """
         rs = ""
         query_raw = ""
         for qry in self.FILE_QUERY_PROMPTS:
