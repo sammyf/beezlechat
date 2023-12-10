@@ -69,6 +69,7 @@ break_on_newline = True
 LOG_DIR = "logs/"
 LOG_FILE = "_logs.txt"
 MINIMUM_MEMORABLE = 4
+MIN_KW_LENGTH = 4
 
 chat_line=""
 current_log_file = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -146,7 +147,7 @@ def store_memory(summary,keywords):
     cursor = connection.cursor()
     fulltext = json.dumps(history)
     sql = f"INSERT into memories (creation_date, persona_id, keywords, summary, fulltext) VALUES(?,?,?,?,?)"
-    params = (now, persona_dbid, keywords, summary, fulltext)
+    params = (now, persona_dbid, "##"+"##".join(keywords)+"##", summary, fulltext)
     print(persona_dbid, f"{keywords} ::: {summary}")
     cursor.execute(sql, params)
     connection.commit()
@@ -372,7 +373,12 @@ def generate_keywords(prompt=""):
     if prompt == "":
         summary=generate("Please summarize the discussion this far.", True)
         print('summary generated : ', summary)
-    keywords=generate ( "give me single keywords for this paragraph:"+summary, True)
+    _keywords=generate ( "give me single keywords for this paragraph:"+summary, True)
+    keywords={}
+    for k in _keywords:
+        if len(k) < MIN_KW_LENGTH:
+            continue
+        keywords.append(k)
     return(summary, keywords)
 
 def generate_memory():
@@ -626,7 +632,7 @@ def cmd_remember(keywords, gen=True):
         sql = f"SELECT creation_date, summary FROM memories WHERE persona_id='{persona_dbid}' AND keywords LIKE ? ORDER BY id desc"
         print("sql : ",sql)
         print("keywords : ",kw)
-        params = ("%"+kw+"%")
+        params = ("%##"+kw+"##%")
         cursor.execute(sql,params)
         res = cursor.fetchone()
         connection.close()

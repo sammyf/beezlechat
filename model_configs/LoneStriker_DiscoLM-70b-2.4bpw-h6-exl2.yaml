@@ -1,0 +1,16 @@
+max_seq_len: 4096
+alpha_value: 1
+system: '<|im_start|>system
+
+  %%prompt%%<|im_end|>
+
+'
+user: '<|im_start|>user
+
+  %%prompt%%<|im_end|>
+
+'
+bot: '<|im_start|>assistant
+
+'
+mode: 'raw'
