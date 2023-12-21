@@ -5,9 +5,9 @@ echo "Revision?"
 echo "(enter 'default' for Default model, otherwise defaulting to 'gptq-4bit-32g-actorder_True')?"
 read TAG
 REV="--revision gptq-4bit-32g-actorder_True"
-if [ $TAG == "default" ]; then
+if [ "$TAG" == "default" ]; then
   REV=""
-elif [ $TAG != "" ]; then
+elif [ "$TAG" != "" ]; then
   REV="--revision $TAG"
 fi
 DEST=$(echo "$MODEL" | sed "s/\//_/g" )
