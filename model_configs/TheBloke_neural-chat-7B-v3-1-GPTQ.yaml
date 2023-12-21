@@ -9,3 +9,4 @@ user: '### User:
 %%prompt%%'
 bot: '### Assistant: 
 '
+loader: 'tabby'

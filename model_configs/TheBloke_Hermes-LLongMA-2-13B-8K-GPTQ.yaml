@@ -1,0 +1,5 @@
+max_seq_len: 8192
+alpha_value: 2
+user: '### Instruction:\n %%prompt%%\n'
+bot: '### Response:\n'
+mode: 'raw'loader: 'tabby'

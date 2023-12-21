@@ -5,9 +5,10 @@ body {
 }
 
 #container {
-    width-width:600px;
-    margin-left: auto;
-    margin-right: auto;
+    position: relative;
+    overflow: auto;
+    min-width: 300px;
+    min-width: 300px;
     max-height: 100%;
 }
 
@@ -22,7 +23,7 @@ div.bot_line {
     border-radius: 15px;
     clear: both;
     margin-bottom: 30px;
-
+    vertical-align:  top;
 }
 
 div.user_line {
@@ -36,7 +37,7 @@ div.user_line {
     border-radius: 15px;
     clear: both;
     margin-bottom: 10px;
-
+    vertical-align:  top;
 }
 
 #messages {
@@ -68,7 +69,7 @@ img.botimg {
 }
 #spinner {
     position: fixed;
-    bottom: 0px;
+    bottom: -3px;
     width:110%;
     left:-10px;
     min-height: 65px;
@@ -87,7 +88,7 @@ img.botimg {
     height:50px;
     background-color: #1f2937;
     color: #888888;
-    font-size: medium;
+    font-size: x-large;
     font-weight: bold;
 }
 

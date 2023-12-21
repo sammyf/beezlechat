@@ -2,4 +2,4 @@ max_seq_len: 4096
 alpha_value: 1
 user: '### Instruction:  %%prompt%%'
 bot: '\n\n### Response: '
-mode: 'raw'
+mode: 'raw'loader: 'tabby'

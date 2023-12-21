@@ -3,3 +3,4 @@ alpha_value: 1
 user: '###Instruction \n %%prompt%%'
 bot: '\n\n###Response'
 mode: 'raw'
+loader: 'tabby'

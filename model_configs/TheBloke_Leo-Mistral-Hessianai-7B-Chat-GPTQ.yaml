@@ -2,4 +2,4 @@ max_seq_len: 4096
 alpha_value: 1
 user: 'USER: %%prompt%%'
 bot: 'ASSISTANT: '
-mode: 'mistral'
+mode: 'mistral'loader: 'tabby'

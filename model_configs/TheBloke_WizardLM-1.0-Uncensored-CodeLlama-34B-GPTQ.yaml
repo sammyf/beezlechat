@@ -3,3 +3,4 @@ alpha_value: 1
 user: 'USER: %%prompt%%'
 bot: 'ASSISTANT: '
 mode: 'codeup'
+loader: 'tabby'

@@ -5,3 +5,4 @@ user: '<user>: %%prompt%%\n'
 bot: '<AI>: 
 '
 mode: 'raw'
+loader: 'tabby'

@@ -119,7 +119,7 @@ def retrieve_persona_dbid():
 
 def generate_ability_string():
     """
-    Generate ability string.
+    Generate ability string. Disabled for now.
 
     :return: None
     """
@@ -131,6 +131,8 @@ def generate_ability_string():
             ability_string += f'{abilities[k]} by saying "CMD_{k}: [insert Keywords or URL here]"\n'
         ability_string += 'Use only one command at a time!'
         print(ability_string)
+        #### OVERRIDE :
+        ability_string = ''
 
 def store_memory(summary,keywords):
     """
@@ -576,12 +578,25 @@ def check_meta_cmds(prompt):
     :return: a tuple containing the command and additional parameters if applicable
     """
     cmd = None
+    news_sources = [
+    'https://news.yahoo.com',
+    'https://news.bbc.co.uk',
+    'https://www.aljazeera.com',
+    'https://www.npr.org',
+    'https://www.reuters.com',
+    'https://www.usatoday.com',
+    'https://www.tageschau.de'
+    ]
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
     matches = re.match(pattern, prompt)
     if matches is not None and len(matches.groups()) > 0:
         return (configure, matches.group(1).lower().capitalize())
     if prompt.lower().startswith("forget everything."):
         return (amnesia, "")
+    if prompt.lower().startswith("check the news please."):
+        source = random.choice(news_sources)
+        print(f"\nNews Source selected : {source}\n")
+        return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
     if "##shutdown now##" in prompt.lower():
         shutdown_action()
         exit()
@@ -600,7 +615,7 @@ def cmd_query(keywords):
         :rtype: str
     """
     global SearXing, model_config
-    prompt = "Search the internet for "+keywords
+    prompt = "Search the internet for "+" ".join(keywords)
     return generate(Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens), True)
 
 def cmd_surf(url):
@@ -621,7 +636,6 @@ def cmd_remember(keywords, gen=True):
     global persona_config, persona_dbid, model_config
     res = []
     print("keywords received", keywords)
-    print(keywords.split(" "))
     for kw in keywords.split(" "):
         kw = kw.strip()
         if kw == "":
@@ -686,6 +700,8 @@ def generate(prompt, raw=False):
     (cmd, prmtr)  = check_meta_cmds(prompt)
     if cmd != None:
         return htmlize(cmd(prmtr))
+    elif prmtr != None:
+        prompt = prmtr
 
     if initialized == False:
         configure(system_config['persona'])
@@ -728,7 +744,9 @@ def generate(prompt, raw=False):
     #    cut_output = output[:second_cut]
     if raw:
         return cut_output
-    cut_output = check_meta_answer(cut_output)
+    # disabling meta answers, as it tends to fall in weird loops
+    # cut_output = check_meta_answer(cut_output)
+
     # print("cut : ",cut_output)
     history.append(["b",cut_output])
     token_count = count_tokens(generate_history_string())

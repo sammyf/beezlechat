@@ -1,0 +1,6 @@
+max_seq_len: 8192
+alpha_value: 1
+user: '<|end_of_turn|>GPT4 Correct User: %%prompt%%<|end_of_turn|>'
+bot: 'GPT4 Correct Assistant: '
+mode: 'raw'
+loader: 'tabby'

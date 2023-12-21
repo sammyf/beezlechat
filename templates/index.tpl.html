@@ -75,9 +75,19 @@
         autonomyTimer()
     }
 
+    document.getElementById("prompt").addEventListener('keydown', (event) => {
+        if ((event.key === "Enter")  && (!event.shiftKey)){
+            event.preventDefault();
+        }
+    })
+
     // standard prompt routine
-    document.getElementById("prompt").addEventListener('keyup', (event) => { if ((event.code == "Enter") && (!event.shiftKey)) {
-        document.getElementById("sendbutton").click()
+    document.getElementById("prompt").addEventListener('keyup', (event) => {
+        if ((event.key === "Enter")  && (!event.shiftKey)){
+            event.preventDefault();
+        }
+        if ((event.code == "Enter") && (!event.shiftKey)) {
+            document.getElementById("sendbutton").click()
        }
       }
     );

@@ -1,0 +1,6 @@
+max_seq_len: 8192
+alpha_value: 1
+user: '<|user|>:\n%%prompt%%\n'
+bot: '<|assistant>:\n'
+mode: 'raw'
+loader: 'tabby'

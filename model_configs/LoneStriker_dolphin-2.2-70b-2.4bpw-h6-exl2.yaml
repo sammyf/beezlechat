@@ -14,3 +14,4 @@ bot: '<|im_start|>assistant
 
 '
 mode: 'raw'
+loader: 'tabby'
