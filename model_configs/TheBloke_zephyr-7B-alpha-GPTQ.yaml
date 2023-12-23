@@ -3,4 +3,5 @@ alpha_value: 1
 user: '%%prompt%%\n\n'
 bot: '%%botname%%: '
 system: '%%prompt%%\n'
-mode: 'raw'loader: 'tabby'
+mode: 'raw'
+loader: 'tabby'

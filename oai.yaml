@@ -1,3 +1,4 @@
-api: 'fd1833580f78d53b7ffe44118054d25e'
-admin: '56f5d64fb600be07616136766f6b16f4'
-server: 'http://127.0.0.1:7070'
+tby_api: 'fd1833580f78d53b7ffe44118054d25e'
+tby_admin: '56f5d64fb600be07616136766f6b16f4'
+tby_server: 'http://127.0.0.1:7070'
+ollama_server: 'http://127.0.0.1:11434'

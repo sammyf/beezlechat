@@ -20,7 +20,7 @@
 <div id="modellist">
     <form id="modelform">
         <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">
-        <select id="models" name="models" size="auto" hx-post="{request_url}/load_models" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+        <select id="models" name="models" size="auto" hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
     </form>
 </div>
 <div id="charlist">
@@ -32,6 +32,7 @@
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
 <div id="input_container">
     <form action="{request_url}/generate" id="input_form">
+        <button id="record">Talk</button>
         <textarea id="prompt" name="prompt" placeholder="Type a message..."></textarea>
         <button hx-post="{request_url}/generate" hx-trigger="click" hx-swap="beforeend" hx-target="#messages" id="sendbutton" hx-indicator="#spinner" autofocus>Send</button>
     </form>
@@ -122,6 +123,66 @@
     window.onload =  function() {
         document.getElementById("refresh_personas").click();
         label_ttsbtn();
+
+        /* AUDIO RECORDING */
+    }
+
+    let chunks = [];
+    let mediaRecorder;
+
+
+    const recordButton = document.getElementById('record');
+    recordButton.addEventListener('click', function(event) {
+        event.preventDefault();
+        const method = this.getAttribute('data-method');
+        if (!mediaRecorder || method === 'start') {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    });
+
+    function startRecording() {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start(100);
+
+                mediaRecorder.ondataavailable = function(e) {
+                    chunks.push(e.data);
+                }
+
+                recordButton.textContent = 'Stop';
+                recordButton.setAttribute('data-method', 'stop');
+            })
+            .catch(e => console.log(e));
+    }
+
+    async function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            // give twice the slice time for the recorder to fill in all the chunks
+            await new Promise(resolve => setTimeout(resolve, 200));
+            let pendingRecording = new Blob(chunks, { type: 'audio/ogg' });
+            // send audio to backend server
+            let formData = new FormData();
+            formData.append('audio', pendingRecording);
+            console.log(pendingRecording.size)
+            const response = await fetch('{request_url}/whisper', {
+                method: 'POST',
+                body: formData
+            });
+            chunks = [];
+            recordButton.textContent = 'Talk';
+            recordButton.setAttribute('data-method', 'start');
+            if(response.ok) {
+                // If HTTP-status is 200-299
+                document.getElementById('prompt').value = await response.text();
+                document.getElementById('sendbutton').click()
+            } else {
+                alert("HTTP-Error: " + response.status);
+            }
+        }
     }
 </script>
 </body>

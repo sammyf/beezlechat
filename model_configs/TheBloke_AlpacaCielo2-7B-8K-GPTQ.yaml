@@ -1,6 +1,6 @@
 max_seq_len: 8192
-alpha_value: 1
-system: 'SYSTEM: %%prompt%%'
-user: 'USER: %%prompt%%'
-bot: 'ASSISTANT: '
-mode: 'raw'loader: 'tabby'
+alpha_value: 4
+user: 'Human: %%prompt%%'
+bot: 'Assistant: '
+mode: 'raw'
+loader: 'tabby'

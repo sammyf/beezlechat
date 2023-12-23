@@ -1,7 +1,7 @@
 max_seq_len: 8192
 alpha_value: 1
-system: 'SYSTEM: %%prompt%%'
+mode: 'raw'
 user: 'USER: %%prompt%%'
 bot: 'ASSISTANT: '
-mode: 'raw'
-loader: 'tabby'
+loader: 'ollama'
+tag: 'latest'

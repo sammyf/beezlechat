@@ -14,3 +14,4 @@ beautifulsoup4
 summarizer
 PyPDF2
 exllamav2
+openai-whisper

@@ -1,0 +1,7 @@
+max_seq_len: 131072
+tag: '7b-128k'
+user: '%%prompt%%'
+bot : ''
+loader: 'ollama'
+alpha_value: 1
+mode: raw

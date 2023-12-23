@@ -16,7 +16,7 @@ ltm/memories.sqbpro
 alt_generator.py
 ltm/
 logs/*
-outputs/*
+audio/*
 xtts_source
 searxing_config.yaml
 test-sentence.txt

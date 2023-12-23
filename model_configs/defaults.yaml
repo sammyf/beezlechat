@@ -1,3 +1,4 @@
 max_seq_len: 4096
 alpha_value: 1
-mode: 'raw'loader: 'tabby'
+mode: 'raw'
+loader: 'tabby'

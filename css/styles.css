@@ -65,22 +65,19 @@ img.botimg {
 #input_container {
     position: fixed;
     bottom: 0px;
+    display: flex;
     width:100%;
-}
-#spinner {
-    position: fixed;
-    bottom: -3px;
-    width:110%;
-    left:-10px;
-    min-height: 65px;
-    max-height: 65px;
-    background-image: image("/imgs/spinner.gif");
+    justify-content: center;
+    align-items: center;
 }
 
 #input_form {
     width:600px;
     margin-left: auto;
     margin-right: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #prompt {
@@ -90,6 +87,39 @@ img.botimg {
     color: #888888;
     font-size: x-large;
     font-weight: bold;
+}
+
+#sendbutton {
+    align-self: stretch;
+    width:60px;
+    background-color: #163acb;
+    color: white;
+    font-weight: bolder;
+    padding: 0px 5px 0px 5px;
+}
+
+#record {
+    align-self: stretch;
+    width:60px;
+    background-color: #cb4b16;
+    color: white;
+    font-weight: bolder;
+    padding: 0px 5px 0px 5px;
+}
+
+#input_tbl {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#spinner {
+    position: fixed;
+    bottom: -3px;
+    width:110%;
+    left:-10px;
+    min-height: 65px;
+    max-height: 65px;
+    background-image: image("/imgs/spinner.gif");
 }
 
 div.user_margin{
@@ -102,9 +132,6 @@ div.bot_margin{
     width:110px;
     height:100%;
     float:left;
-}
-#sendbutton {
-    height:25px;
 }
 
 #audioctrl {
@@ -156,11 +183,18 @@ div.bot_margin{
     font-size: x-small;
 }
 
-option {
+option.ollama {
+    font-weight: normal;
+    background-color: rgba(116, 96, 138, 0.5);
+    color: #ffffff
+}
+
+option.tabby {
     font-weight: normal;
     background-color: rgba(96,138,125,0.5);
     color: #ffffff
 }
+
 #spacer {
     min-height: 40px;
     max-height: 40px;

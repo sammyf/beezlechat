@@ -8,7 +8,7 @@
   "user": "Sammy",
   "seed": -1,
   "stream": false,
-  "stop": [],
+  "stop": ["user:", "</s>", "[INST]","[/INST]","<<SYS>>","<</SYS>>"],
   "max_tokens": 400,
   "frequency_penalty": 1.5,
   "token_healing": false,

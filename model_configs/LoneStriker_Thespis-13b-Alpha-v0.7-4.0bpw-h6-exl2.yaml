@@ -2,4 +2,5 @@ max_seq_len: 8192
 alpha_value: 1
 user: '<user>:\n %%prompt%%\n'
 bot: '<bot>:\n'
-mode: 'raw'loader: 'tabby'
+mode: 'raw'
+loader: 'tabby'

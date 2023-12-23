@@ -1,6 +1,7 @@
 import json
 import math
 import random
+import subprocess
 import sys, os
 import time
 import collections
@@ -23,37 +24,41 @@ import sqlite3
 import signal
 import requests
 import json
+import whisper
 
 VERSION='2'
 app = Flask(__name__)
 CORS(app)
-global MODEL_PATH
+# global MODEL_PATH
 MODEL_PATH="models/"
-global persona_config
-global tokenizer
-global generator
-global cache
-global history
-global initialized
-global loaded_model
-global model_config
-global oai_config
-global pre_tag
-global model
-global system_config
-global tts_config
-global gen_settings
-global extra_prune
-global min_response_tokens
-global system_prompt
-global last_context
-global redo_persona_context
-global redo_greetings
-global requrl
-global token_count
-global persona_dbid
-global abilities
-global ability_string
+# global persona_config
+# global tokenizer
+# global generator
+# global cache
+# global history
+# global initialized
+# global loaded_model
+# global model_config
+# global oai_config
+# global pre_tag
+# global model
+# global system_config
+# global tts_config
+# global gen_settings
+# global extra_prune
+# global min_response_tokens
+# global system_prompt
+# global last_context
+# global redo_persona_context
+# global redo_greetings
+# global requrl
+# global token_count
+# global persona_dbid
+# global abilities
+# global ability_string
+# global last_loader
+
+last_loader=""
 
 with open('oai.yaml') as f:
     oai_config = yaml.safe_load(f)
@@ -185,7 +190,7 @@ def tabby_load_model(model):
     """
     global model_config, loaded_model
     print(f"Loading {model}")
-    url = f"{oai_config['server']}/v1/model/load"
+    url = f"{oai_config['tby_server']}/v1/model/load"
     payload = {
         "name": model,
         "max_seq_len": model_config['max_seq_len'],
@@ -204,7 +209,7 @@ def tabby_load_model(model):
     }
     headers = {
         "Content-Type": "application/json",
-        "x-admin-key": oai_config['admin']
+        "x-admin-key": oai_config['tby_admin']
     }
     response = requests.post(url, data=json.dumps(payload), headers=headers)
     loaded_model = model
@@ -218,33 +223,105 @@ def tabby_unload():
     :return: None
     """
     print(f"Unloading {model}")
-    url = f"{oai_config['server']}/v1/model/unload"
+    url = f"{oai_config['tby_server']}/v1/model/unload"
     headers = {
         "Content-Type": "application/json",
-        "x-admin-key": oai_config['admin']
+        "x-admin-key": oai_config['tby_admin']
     }
     response = requests.get(url, headers=headers)
-    print(response.status_code)
-    print(response.text)
 
-def tabby_generate(prompt):
+def ollama_stop():
+    subprocess.run(["sudo","/bin/systemctl", "stop", "ollama"])
+
+def ollama_restart():
+    subprocess.run(["sudo", "/bin/systemctl", "restart", "ollama"])
+
+def ollama_generate(original_prompt):
+    global persona_config,system_config, history
+    rs = {
+        "model": persona_config["model"]+":"+model_config["tag"],
+        "messages": [],
+        "stream": False,
+        "context": "",
+        "options": {}
+    }
+    with open(f"parameters/{model_config['loader']}_{persona_config['parameters']}.yaml") as f:
+        rs['options'] = yaml.safe_load(f)
+    seed = random.randint(math.ceil(sys.float_info.min), math.floor(sys.float_info.max))
+    print(f"Seed: {seed}")
+    rs["options"]["seed"]=seed
+    if 'stop' in model_config.keys():
+        rs["options"]["stop"] = model_config["stop"].split(',')
+
+    e = {
+        "role": ""
+        "content" ""
+    }
+
+    current_time = datetime.datetime.now()
+    now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
+    rs["context"] = f"It is {now}\n.The user's name is {system_config['username']}.\n{persona_config['context']}"
+
+    if original_prompt.strip() != "":
+        rs = generate_history_array(rs)
+    else:
+        e["role"] = "user"
+        e["content"] = "please continue."
+        rs = generate_history_array(rs)
+        rs["messages"].append(e)
+
+    url = f"{oai_config['ollama_server']}/api/chat"
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+#    response = requests.post(url, data=json.dumps(rs, indent=0), headers=headers)
+    response = requests.post(url, data=json.dumps(rs, indent=0))
+    print(response.status_code)
+    print("response : ",response.text)
+    rsjson = json.loads(response.text)
+    print(rsjson)
+    #return rsjson["choices"][0]["message"]['content']
+    # prompt_speed = (rsjson['prompt_eval_count']/rsjson['prompt_eval_duration']/1000)
+    # answer_speed = (rsjson['eval_count']/rsjson['eval_duration']/1000)
+    # print( f"ollama: token stats:\n    {rsjson['prompt_eval_count']} ({prompt_speed} t/s)\n    {rsjson['eval_count']} ({answer_speed} t/s)\n")
+    return rsjson["message"]["content"]
+
+def tabby_generate(original_prompt):
     """
     Generate a response using the Tabby API.
 
     :param prompt: The prompt for generating the response.
     :return: The generated response.
     """
-    global persona_config,system_config
+    global persona_config,system_config, history
+
+    with open(f"parameters/{model_config['loader']}_{persona_config['parameters']}.yaml") as f:
+        parameters = yaml.safe_load(f)
+
+    current_time = datetime.datetime.now()
+    now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
+
+    if original_prompt.strip() != "":
+        prompt = f"It is {now}\n.The user's name is {system_config['username']}\nThe chat so far :\n" + generate_history_string() + "\n" + \
+                      model_config["bot"]
+    else:
+        prompt = "The chat so far :\n" + generate_history_string() + "\nplease continue." + model_config["bot"]
+
+    seed = random.randint(math.ceil(sys.float_info.min), math.floor(sys.float_info.max))
+    print(f"Seed: {seed}")
+    parameters["seed"] = seed
     parameters['model']=persona_config['model']
     parameters['prompt']=prompt
     parameters['max_tokens']=persona_config['max_answer_token']
     parameters['user']=system_config["username"]
 
-    url = f"{oai_config['server']}/v1/completions"
+    url = f"{oai_config['tby_server']}/v1/completions"
 
     headers = {
         "Content-Type": "application/json",
-        "x-api-key": oai_config['admin']
+        "x-api-key": oai_config['tby_admin']
     }
 
     response = requests.post(url, data=json.dumps(parameters, indent=4), headers=headers)
@@ -254,16 +331,20 @@ def tabby_generate(prompt):
     #return rsjson["choices"][0]["message"]['content']
     return rsjson["choices"][0]['text']
 
+def word_count(prompt):
+    return len(prompt.split())
 
 def tabby_count_tokens(prompt):
     """
     :param prompt: The text prompt to be tokenized.
     :return: The number of tokens in the given prompt.
     """
-    url = f"{oai_config['server']}/v1/token/encode"
+    if model_config['loader'] != 'tabby':
+        return word_count(prompt)
+    url = f"{oai_config['tby_server']}/v1/token/encode"
     headers = {
         "Content-Type": "application/json",
-        "x-api-key": oai_config['admin']
+        "x-api-key": oai_config['tby_admin']
     }
     body = {
         "add_bos_token": True,
@@ -274,6 +355,11 @@ def tabby_count_tokens(prompt):
     raw = requests.post(url, data=json.dumps(body, indent=4), headers=headers)
     response=json.loads(raw.text)
     return response["length"]
+
+generators = {
+    'tabby': tabby_generate,
+    'ollama': ollama_generate
+}
 
 # Used for making text xml compatible, needed for voice pitch and speed control
 table = str.maketrans({
@@ -289,6 +375,8 @@ def count_tokens(txt):
     :param txt: the string to count tokens from
     :return: the number of tokens in the string
     """
+    if model_config['loader'] != 'tabby':
+        return word_count(txt)
     return tabby_count_tokens(txt)
 
 def generate_chat_lines(user, bot):
@@ -323,6 +411,26 @@ def find_half_of_context():
             return cutting_point
         cutting_point += 1
     return cutting_point
+
+def generate_history_array( rs):
+    global model_config, history, persona_config
+
+    for h in history:
+        e = {
+            'role': '',
+            'content': ''
+        }
+        if h[0]=="s":
+            e["role"] = "system"
+            e["content"] = h[1]
+        elif h[0]=="u":
+            e["role"] = "user"
+            e["content"] = h[1]
+        else:
+            e["role"] = "assistant"
+            e["content"] = h[1]
+        rs["messages"].append(e)
+    return rs
 
 def generate_history_string():
     """
@@ -360,7 +468,7 @@ def truncate_history():
     summary = generate_memory()
     history = current_history[half:]
     print("len half after cut :",count_tokens(generate_history_string()))
-    history.insert(0, "context" + persona_config['context'] + "\nsummary of the discussion this far :"+summary+"\ n")
+    history.insert(0, "\nsummary of the discussion this far :"+summary+"\ n")
     print("len with context :",count_tokens(generate_history_string()))
     print("len with context :",count_tokens(generate_history_string()))
 
@@ -426,13 +534,30 @@ def load_model(model):
     Example usage:
     load_model("model_name")
     """
-    global model_config, system_config, persona_config, loaded_model
+    global model_config, system_config, persona_config, loaded_model, last_loader
     ## Load Model Configuration (maximum context, template, ...)
     try:
-        with open(f'model_configs/{model}.yaml') as f:
+        with open(f'model_configs/{model.replace(":","_")}.yaml') as f:
             model_config = yaml.safe_load(f)
     except:
         model_config = {}
+        return
+
+    # just unload any potentially loaded models from tabby if we are using ollama
+    if model_config["loader"] == "tabby" and last_loader == "ollama":
+        last_loader = "tabby"
+        ollama_stop()
+    if model_config["loader"] == "ollama":
+        if last_loader == "tabby":
+            ollama_restart()
+            try:
+                tabby_unload()
+            except:
+                pass
+        loaded_model = persona_config["model"]
+        print("\n\nloaded model :", loaded_model, "\n")
+        return
+
     for k in default_model_config.keys():
         if k not in model_config.keys():
             model_config[k] = default_model_config[k]
@@ -441,7 +566,7 @@ def load_model(model):
     if(loaded_model != persona_config["model"]):
         tabby_unload()
         tabby_load_model(model)
-    loaded_model == persona_config["model"]
+    loaded_model = persona_config["model"]
     print("\n\nloaded model :", loaded_model,"\n")
 
 def configure(persona):
@@ -449,7 +574,7 @@ def configure(persona):
     :param persona: The name of the persona to configure. This is used to load the corresponding persona configuration file located in the "personas" directory.
     :return: The result of calling the generate_chat_lines method with the configured prompt and cut_output.
     """
-    global old_persona, persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, redo_greetings, persona_dbid, loaded_model
+    global last_loader, old_persona, persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, redo_greetings, persona_dbid, loaded_model
 
     if initialized:
         old_persona = persona_config["name"]
@@ -466,23 +591,19 @@ def configure(persona):
 
     if "language" not in persona_config:
         persona_config['language'] = ''
-    generate_ability_string()
+    #generate_ability_string()
 
-    if initialized:
-        generate_memory()
+    # if initialized:
+    #     generate_memory()
 
-    ### Next Try allowing the Personas to be aware of each other
     amnesia("bar")
-    #history.append(["s","Anything above this line belongs to a conversation with another LLM and is only included as reference."])
     retrieve_persona_dbid()
     print(persona_config["model"])
     if 'parameters' not in persona_config:
         persona_config['parameters'] = 'default'
-    with open(f'./parameters/{persona_config["parameters"]}.yaml') as f:
-        parameters =  yaml.safe_load(f)
 
-    with open(MODEL_PATH+persona_config['model']+'/config.json') as f:
-        cfg = json.load(f)
+    #with open(MODEL_PATH+persona_config['model']+'/config.json') as f:
+    #    cfg = json.load(f)
 
     mozTTS = moztts.MozTTS()
     mozTTS.load_model(persona_config['voice'])
@@ -492,26 +613,15 @@ def configure(persona):
     load_model(persona_config['model'])
 
     # do the greetings
-    #prompt = f'I am summoning {last_character}. You are not {old_persona} anymore.{persona_config["context"]}\n You answer now as {last_character}\n'
     prompt = f'{persona_config["context"]}\n You are {last_character}\n'
-    history.append(["u",prompt])
-    #prompt = f'I am summoning {last_character}.'
-    greeting_prompt = ""
-    cut_output_prompted = ''
-    cut_output = ''
+    history.append(["s",prompt])
     if system_config['do_greeting'] is True:
         cut_output = persona_config['greeting']
-        if "system" in model_config :
-                greeting_prompt=model_config["system"].replace("%%prompt%%",persona_config["greeting"]+"\n"+persona_config["context"])
     else:
-        if "system" in model_config :
-                greeting_prompt=model_config["system"].replace("%%prompt%%",persona_config["context"])
-    cut_output_prompted = f"{greeting_prompt} {cut_output}"
+        cut_output = f"{persona_config['name']} appears."
     redo_persona_context = True
-    # history.append(prompt)
-    # history.append(cut_output_prompted)
 
-    context_management()
+    #context_management()
 
     generate_tts(cut_output)
     save_log(prompt, cut_output)
@@ -561,11 +671,11 @@ def generate_tts(string):
     string = fixHash27(string)
     original_string = string
 
-    output_file = "./outputs/tts.wav"
+    output_file = "./audio/tts.wav"
     if string == '':
         string = '*Empty reply, try regenerating*'
     else:
-        output_file = './outputs/tts.wav'
+        output_file = './audio/tts.wav'
         mozTTS.moztts(string, persona_config['voice'], persona_config['speaker'], persona_config['language'], output_file)
 
     return output_file
@@ -583,8 +693,6 @@ def check_meta_cmds(prompt):
     'https://news.bbc.co.uk',
     'https://www.aljazeera.com',
     'https://www.npr.org',
-    'https://www.reuters.com',
-    'https://www.usatoday.com',
     'https://www.tageschau.de'
     ]
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
@@ -695,7 +803,7 @@ def check_meta_answer(output):
     return output
 
 def generate(prompt, raw=False):
-    global redo_persona_context, persona_config, token_count, model_config, parameters, tokenizer, generator, history, initialized, ability_string
+    global generators, redo_persona_context, persona_config, token_count, model_config, parameters, tokenizer, generator, history, initialized, ability_string
 
     (cmd, prmtr)  = check_meta_cmds(prompt)
     if cmd != None:
@@ -712,13 +820,11 @@ def generate(prompt, raw=False):
         searxPrompt = prompt
 
     ## memory
-    if random.randint(0,1000) < 30:
+    if random.randint(0,1000) < 5:
         (summary, kw) = generate_keywords()
         print("trying to remember :",kw)
         searxPrompt += "\n"+cmd_remember(kw,True)+"\n"
 
-    current_time = datetime.datetime.now()
-    now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
 
     if( redo_persona_context):
         ctx = persona_config['context']
@@ -729,28 +835,19 @@ def generate(prompt, raw=False):
     # history.append(model_config["user"].replace("%%prompt%%", searxPrompt+"\n"))
     history.append(["u",searxPrompt])
 
-    context_management()
+    if model_config['loader'] == 'tabby':
+        context_management()
 
-    if original_prompt.strip() != "":
-        full_prompt = f"It is {now}\n.The user's name is {system_config['username']}\n{ability_string}\nThe chat so far :\n"+generate_history_string()+"\n"+model_config["bot"]
-    else:
-        full_prompt = "The chat so far :\n"+generate_history_string()+"\nplease continue." + model_config["bot"]
-    cut_output = tabby_generate(full_prompt)
-    #output = generator.generate_simple(prompt = full_prompt, max_new_tokens = parameters['max_tokens'])
-    #print("full prompt : ", full_prompt, "output : ", output,"\n(",cutoff,"\n")
-    #cut_output = output[cutoff:]
-    #second_cut = cut_output.find("context: "+persona_config['context'])
-    #if second_cut > 0:
-    #    cut_output = output[:second_cut]
+    cut_output = generators[model_config['loader']](original_prompt)
+
     if raw:
         return cut_output
     # disabling meta answers, as it tends to fall in weird loops
     # cut_output = check_meta_answer(cut_output)
-
-    # print("cut : ",cut_output)
     history.append(["b",cut_output])
-    token_count = count_tokens(generate_history_string())
-    print(f'Token count: {token_count}')
+    if model_config['loader'] == 'tabby':
+        token_count = count_tokens(generate_history_string())
+        print(f'Token count: {token_count}')
     generate_tts(cut_output)
     save_log(original_prompt, cut_output)
     return generate_chat_lines(original_prompt, htmlize(cut_output))
@@ -784,11 +881,31 @@ def list_models():
     models.sort()
     rs = ""
     for p_raw in models:
+        with open(p_raw) as f:
+            tmp=yaml.safe_load(f)
+            ldr = tmp['loader']
+
+        loader = ldr[0].upper()
         p=p_raw.replace(".yaml","").replace("./model_configs/","")
         selected=""
         if p == loaded_model:
             selected = "selected"
-        rs +=f"<option value='{p}' {selected}>{p}</option>"
+        rs +=f"<option value='{p}' {selected} class='tabby'>({loader}) {p}</option>"
+
+    # # get the ollama models
+    # url = f"{oai_config['ollama_server']}/api/tags"
+    # response = requests.get(url)
+    # print(url)
+    # rsjson = json.loads(response.text)
+    # print(rsjson)
+    # for model in rsjson['models']:
+    #     p = model['name']
+    #     selected = ""
+    #     if p == loaded_model:
+    #         selected = "selected"
+    #     rs += f"<option value='{p}' {selected} class='ollama'>(O) {p} {model['details']['parameter_size']}</option>"
+
+
     return rs
 
 def set_username(uname):
@@ -888,7 +1005,7 @@ def get_voice(rnd):
     This method generates a voice file using the given `rnd` parameter
     and returns it as a WAV file.
     """
-    return send_file("outputs/tts.wav", mimetype='audio/x-wav')
+    return send_file("audio/tts.wav", mimetype='audio/x-wav')
 
 @app.route('/css/styles.css', methods=['GET'])
 def get_css():
@@ -1006,6 +1123,14 @@ def generate_action():
     prompt = request.form['prompt']
     return generate(prompt)
 
+@app.route('/whisper', methods=['POST'])
+def whisper_action():
+    global whisper_model
+    audio = request.files['audio']
+    audio.save('audio/input.ogg')
+    result = whisper_model.transcribe("audio/input.ogg")
+    return result["text"]
+
 @app.route('/rpgenerate', methods=['POST'])
 def rpgenerate_action():
     """
@@ -1070,6 +1195,7 @@ def shutdown_action():
     exit()
     #return True
 
+
 def on_terminate(signum, frame):
     """
     Handle termination signal.
@@ -1095,6 +1221,7 @@ if __name__ == '__main__':
     redo_persona_context = True
     redo_greetings = True
     Searxing = SearXing()
+    whisper_model = whisper.load_model("base")
     configure(system_config['persona'])
     signal.signal(signal.SIGTERM, on_terminate)
     app.run(host=system_config['host'], port=system_config['port'])

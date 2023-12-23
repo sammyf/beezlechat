@@ -1,5 +1,6 @@
-max_seq_len: 4096
-alpha_value: 1
+max_seq_len: 8192
+alpha_value: 2
+mode: 'raw'
 system: '<|im_start|>system
   %%prompt%%<|im_end|>
 '
@@ -8,5 +9,5 @@ user: '<|im_start|>user
 '
 bot: '<|im_start|>assistant
 '
-mode: 'raw'
-loader: 'tabby'
+loader: 'ollama'
+tag: 'latest'

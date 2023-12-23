@@ -1,0 +1,20 @@
+{
+    "num_keep": 5,
+    "seed": -1,
+    "num_predict": 100,
+    "top_k": 72,
+    "top_p": 0.29,
+    "tfs_z": 1,
+    "typical_p": 0.7,
+    "repeat_last_n": 33,
+    "temperature": 1.31,
+    "repeat_penalty": 1.2,
+    "presence_penalty": 1.5,
+    "frequency_penalty": 1.0,
+    "mirostat": 1,
+    "mirostat_tau": 1.5,
+    "mirostat_eta": 0.1,
+    "penalize_newline": false,
+    "stop": ["</s>","USER", "ASSISTANT", "user:", "User:", "Assistant:", "Bot:", "assistant:", "bot:", "[INST]","[/INST]","<<SYS>>","<</SYS>>"],
+    "num_thread": 8
+}
