@@ -1,7 +1,7 @@
 {
     "num_keep": 5,
     "seed": -1,
-    "num_predict": 100,
+    "num_predict": 1000,
     "top_k": 72,
     "top_p": 0.29,
     "tfs_z": 1,

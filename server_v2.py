@@ -231,7 +231,7 @@ def tabby_unload():
     response = requests.get(url, headers=headers)
 
 def ollama_stop():
-    subprocess.run(["sudo","/bin/systemctl", "stop", "ollama"])
+    subprocess.run(["/bin/sudo", "/bin/systemctl", "restart", "ollama"])
 
 def ollama_restart():
     subprocess.run(["sudo", "/bin/systemctl", "restart", "ollama"])
@@ -241,7 +241,7 @@ def ollama_generate(original_prompt):
     rs = {
         "model": persona_config["model"]+":"+model_config["tag"],
         "messages": [],
-        "stream": False,
+        "stream": True,
         "context": "",
         "options": {}
     }
@@ -250,6 +250,7 @@ def ollama_generate(original_prompt):
     seed = random.randint(math.ceil(sys.float_info.min), math.floor(sys.float_info.max))
     print(f"Seed: {seed}")
     rs["options"]["seed"]=seed
+    rs["options"]["num_predict"] = persona_config['max_answer_token']
     if 'stop' in model_config.keys():
         rs["options"]["stop"] = model_config["stop"].split(',')
 
@@ -276,17 +277,31 @@ def ollama_generate(original_prompt):
         "Content-Type": "application/json",
     }
 
-#    response = requests.post(url, data=json.dumps(rs, indent=0), headers=headers)
-    response = requests.post(url, data=json.dumps(rs, indent=0))
-    print(response.status_code)
-    print("response : ",response.text)
-    rsjson = json.loads(response.text)
-    print(rsjson)
-    #return rsjson["choices"][0]["message"]['content']
-    # prompt_speed = (rsjson['prompt_eval_count']/rsjson['prompt_eval_duration']/1000)
-    # answer_speed = (rsjson['eval_count']/rsjson['eval_duration']/1000)
-    # print( f"ollama: token stats:\n    {rsjson['prompt_eval_count']} ({prompt_speed} t/s)\n    {rsjson['eval_count']} ({answer_speed} t/s)\n")
-    return rsjson["message"]["content"]
+    # response = requests.post(url, data=json.dumps(rs, indent=0))
+    rs_stream = requests.post(url, data=json.dumps(rs, indent=0), stream=True)
+    response = ""
+    if rs_stream.ok:
+        for line in rs_stream.iter_lines():
+            if line:  # filter out keep-alive new lines
+                js = json.loads(line.decode('utf-8'))
+                print("stream",js)
+                response += js["message"]["content"]
+                if js['done']:
+                    break;
+    else:
+        print('Error:', rs_stream.status_code)
+
+
+    print("response : ",response)
+    # rsjson = json.loads(response.text)
+    # try:
+    #     prompt_speed = (rsjson['prompt_eval_count']/rsjson['prompt_eval_duration']/1000)
+    #     answer_speed = (rsjson['eval_count']/rsjson['eval_duration']/1000)
+    #     print( f"ollama: token stats:\n    {rsjson['prompt_eval_count']} ({prompt_speed} t/s)\n    {rsjson['eval_count']} ({answer_speed} t/s)\n")
+    # except:
+    #     print( "Could not compute token stats")
+    # return rsjson["message"]["content"]
+    return response
 
 def tabby_generate(original_prompt):
     """
