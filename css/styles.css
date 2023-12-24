@@ -91,7 +91,7 @@ img.botimg {
 
 #sendbutton {
     align-self: stretch;
-    width:60px;
+    width:150px;
     background-color: #163acb;
     color: white;
     font-weight: bolder;
@@ -100,7 +100,7 @@ img.botimg {
 
 #record {
     align-self: stretch;
-    width:60px;
+    width:150px;
     background-color: #cb4b16;
     color: white;
     font-weight: bolder;

@@ -2,6 +2,6 @@ do_greeting: true
 do_tts: true
 host: 0.0.0.0
 log: false
-persona: Shadow
+persona: Alva
 port: 9706
 username: Sammy

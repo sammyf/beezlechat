@@ -127,22 +127,53 @@
         /* AUDIO RECORDING */
     }
 
+
+    // WHISPER SPECIFIC CODE
+
     let chunks = [];
     let mediaRecorder;
+    let whisperSizeThreshold = 1000
+    let audioElem = document.getElementById('tts')
 
+    document.addEventListener('keydown', (event) => {
+        if (event.ctrlKey) {
+            console.log('Control key is pressed.')
+            if (! recordButton.hasAttribute('data-method'))  {
+                recordButton.setAttribute('data-method', 'start')
+            }
+            const method =recordButton.getAttribute('data-method')
+            if ((!mediaRecorder || method === 'start')) {
+                startRecording()
+            }
+        }
+    });
 
+    document.addEventListener('keyup', (event) => {
+        if (event.key === 'Control') {
+            console.log('Control key is released.');
+            if (mediaRecorder)  {
+                stopRecording()
+            }
+        }
+    });
     const recordButton = document.getElementById('record');
-    recordButton.addEventListener('click', function(event) {
+    recordButton.addEventListener('mousedown', function(event) {
         event.preventDefault();
-        const method = this.getAttribute('data-method');
-        if (!mediaRecorder || method === 'start') {
-            startRecording();
-        } else {
-            stopRecording();
+        const method = this.getAttribute('data-method')
+        if ((!mediaRecorder || method === 'start'))  {
+            startRecording()
+        }
+    });
+
+    recordButton.addEventListener('mouseup', function(event) {
+        event.preventDefault();
+        if (mediaRecorder)  {
+            stopRecording()
         }
     });
 
     function startRecording() {
+        console.log("Start Recording");
         navigator.mediaDevices.getUserMedia({ audio: true })
             .then(stream => {
                 mediaRecorder = new MediaRecorder(stream);
@@ -151,7 +182,6 @@
                 mediaRecorder.ondataavailable = function(e) {
                     chunks.push(e.data);
                 }
-
                 recordButton.textContent = 'Stop';
                 recordButton.setAttribute('data-method', 'stop');
             })
@@ -159,22 +189,30 @@
     }
 
     async function stopRecording() {
+        console.log("Stop Recording");
+        debounceTimeoutId = undefined
         if (mediaRecorder && mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
             // give twice the slice time for the recorder to fill in all the chunks
             await new Promise(resolve => setTimeout(resolve, 200));
-            let pendingRecording = new Blob(chunks, { type: 'audio/ogg' });
+
+            let pendingRecording = new Blob(chunks, {type: 'audio/ogg'});
+
+            chunks = [];
+            recordButton.textContent = 'Talk';
+            recordButton.setAttribute('data-method', 'start');
+
             // send audio to backend server
             let formData = new FormData();
             formData.append('audio', pendingRecording);
-            console.log(pendingRecording.size)
+            console.log("recording size", pendingRecording.size)
+            if (pendingRecording.size < whisperSizeThreshold) {
+                return
+            }
             const response = await fetch('{request_url}/whisper', {
                 method: 'POST',
                 body: formData
             });
-            chunks = [];
-            recordButton.textContent = 'Talk';
-            recordButton.setAttribute('data-method', 'start');
             if(response.ok) {
                 // If HTTP-status is 200-299
                 document.getElementById('prompt').value = await response.text();
@@ -184,6 +222,74 @@
             }
         }
     }
+    function isPlaying() {
+        return !audioElem.paused && !audioElem.ended && audioElem.currentTime > 0;
+    }
+
+    /* ************************************************************************
+     Continuous Listening That kind of work, but only leads to problems
+     Currently disabled until I find a better implementation that makes SENSE
+    ************************************************************************ */
+
+    // let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    // let analyser = audioContext.createAnalyser();
+    // let audioStream;
+    // let source;
+    //
+    // // Lower values will make the meter less sensitive.
+    // let volumeThreshold = 8;
+    //
+    // let debounceTimeoutId = undefined;
+    //
+    // navigator.mediaDevices.getUserMedia({ audio: true })
+    //     .then(stream => {
+    //         audioStream = stream;
+    //         source = audioContext.createMediaStreamSource(stream);
+    //         source.connect(analyser);
+    //         checkVolume();
+    //     })
+    //     .catch(e => console.log(e));
+    //
+    // function checkVolume() {
+    //     // console.log("volume : ", volume)
+    //     if (!isPlaying() && listening) {
+    //         recordButton.textContent = 'Listening';
+    //         let data = new Uint8Array(analyser.frequencyBinCount);
+    //         analyser.getByteFrequencyData(data);
+    //
+    //         let volume = data.reduce((a, b) => a + b) / data.length;
+    //         if (volume > volumeThreshold) {
+    //             // Clear previous timeout id if there was one
+    //             if (debounceTimeoutId != undefined) {
+    //                 clearTimeout(debounceTimeoutId);
+    //                 debounceTimeoutId = undefined
+    //             }
+    //             console.log("Someone is talking");
+    //             if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+    //                 console.log("calling START")
+    //                 startRecording();
+    //             }
+    //         } else if (mediaRecorder && mediaRecorder.state === 'recording') {
+    //             console.log("volume too low at ",volume)
+    //             if (debounceTimeoutId === undefined) {
+    //                 console.log("debouncing start ...")
+    //                 debounceTimeoutId = setTimeout(stopRecording, 500);
+    //             }
+    //         }
+    //         // Continue monitoring
+    //         requestAnimationFrame(checkVolume);
+    //     } else {
+    //         recordButton.textContent = 'Wait';
+    //         if( debounceTimeoutId != undefined) {
+    //             console.log("no recording taking place.")
+    //             clearTimeout(debounceTimeoutId);
+    //             debounceTimeoutId = undefined
+    //         }
+    //     }
+    // }
+    //
+
+
 </script>
 </body>
 </html>
