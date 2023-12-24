@@ -7,4 +7,4 @@ bot: '### Assistant:
 '
 mode: 'raw'
 loader: 'tabby'
-eos: '</s>'
+stop: 'User:,Assistant:,USER:,ASSISTANT:,System:,SYSTEM:,### ,</s>'

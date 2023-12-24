@@ -331,6 +331,8 @@ def tabby_generate(original_prompt):
     parameters['prompt']=prompt
     parameters['max_tokens']=persona_config['max_answer_token']
     parameters['user']=system_config["username"]
+    if 'stop' in model_config.keys():
+        parameters["stop"] = model_config["stop"].split(',')
 
     url = f"{oai_config['tby_server']}/v1/completions"
 
@@ -338,13 +340,14 @@ def tabby_generate(original_prompt):
         "Content-Type": "application/json",
         "x-api-key": oai_config['tby_admin']
     }
-
-    response = requests.post(url, data=json.dumps(parameters, indent=4), headers=headers)
-    print(response.status_code)
-    print("response : ",response.text)
-    rsjson = json.loads(response.text)
-    #return rsjson["choices"][0]["message"]['content']
-    return rsjson["choices"][0]['text']
+    answer = ""
+    while answer.strip() == "":
+        response = requests.post(url, data=json.dumps(parameters, indent=0), headers=headers)
+        print(response.status_code)
+        print("response : ",response.text)
+        rsjson = json.loads(response.text)
+        answer = rsjson["choices"][0]['text']
+    return answer
 
 def word_count(prompt):
     return len(prompt.split())

@@ -10,4 +10,4 @@ user: '### User:
 bot: '### Assistant: 
 '
 loader: 'tabby'
-stop: 'User:,Assistant:,USER:,ASSISTANT:,System:,SYSTEM:'
+stop: 'User:,Assistant:,USER:,ASSISTANT:,System:,SYSTEM:,### '
