@@ -29,34 +29,8 @@ import whisper
 VERSION='2'
 app = Flask(__name__)
 CORS(app)
-# global MODEL_PATH
+
 MODEL_PATH="models/"
-# global persona_config
-# global tokenizer
-# global generator
-# global cache
-# global history
-# global initialized
-# global loaded_model
-# global model_config
-# global oai_config
-# global pre_tag
-# global model
-# global system_config
-# global tts_config
-# global gen_settings
-# global extra_prune
-# global min_response_tokens
-# global system_prompt
-# global last_context
-# global redo_persona_context
-# global redo_greetings
-# global requrl
-# global token_count
-# global persona_dbid
-# global abilities
-# global ability_string
-# global last_loader
 
 last_loader=""
 
@@ -280,11 +254,12 @@ def ollama_generate(original_prompt):
     # response = requests.post(url, data=json.dumps(rs, indent=0))
     rs_stream = requests.post(url, data=json.dumps(rs, indent=0), stream=True)
     response = ""
+    js = ""
     if rs_stream.ok:
         for line in rs_stream.iter_lines():
             if line:  # filter out keep-alive new lines
                 js = json.loads(line.decode('utf-8'))
-                print("stream",js)
+                # print("stream",js)
                 response += js["message"]["content"]
                 if js['done']:
                     break;
@@ -292,14 +267,14 @@ def ollama_generate(original_prompt):
         print('Error:', rs_stream.status_code)
 
 
-    print("response : ",response)
+    print("Last response : ",js)
     # rsjson = json.loads(response.text)
-    # try:
-    #     prompt_speed = (rsjson['prompt_eval_count']/rsjson['prompt_eval_duration']/1000)
-    #     answer_speed = (rsjson['eval_count']/rsjson['eval_duration']/1000)
-    #     print( f"ollama: token stats:\n    {rsjson['prompt_eval_count']} ({prompt_speed} t/s)\n    {rsjson['eval_count']} ({answer_speed} t/s)\n")
-    # except:
-    #     print( "Could not compute token stats")
+    try:
+         prompt_speed = "{0:.2f}".format((js['prompt_eval_count']/float(js['prompt_eval_duration']/100000000)))
+         answer_speed = "{0:.2f}".format((js['eval_count']/float(js['eval_duration']/100000000)))
+         print( f"ollama: token stats:\n    {prompt_speed} t/s)\n    {answer_speed} t/s)\n")
+    except:
+         print( "Could not compute token stats")
     # return rsjson["message"]["content"]
     return response
 
