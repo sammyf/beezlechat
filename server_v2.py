@@ -692,9 +692,9 @@ def check_meta_cmds(prompt):
     matches = re.match(pattern, prompt)
     if matches is not None and len(matches.groups()) > 0:
         return (configure, matches.group(1).lower().capitalize())
-    if prompt.lower().startswith("forget everything."):
+    if prompt.lower().startswith("forget everything"):
         return (amnesia, "")
-    if prompt.lower().startswith("check the news please."):
+    if prompt.lower().startswith("check the news"):
         source = random.choice(news_sources)
         print(f"\nNews Source selected : {source}\n")
         return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")

@@ -156,6 +156,7 @@
             }
         }
     });
+
     const recordButton = document.getElementById('record');
     recordButton.addEventListener('mousedown', function(event) {
         event.preventDefault();
@@ -171,6 +172,10 @@
             stopRecording()
         }
     });
+
+    recordButton.addEventListener('click', function(event) {
+        event.preventDefault();
+    })
 
     function startRecording() {
         console.log("Start Recording");

@@ -365,13 +365,16 @@ class SearXing:
         q = self.extract_query(_prompt)
 
         print(f"Filename found : '{fn}'\nQuery found : {q[0]}\nUrl found : {url}\n")
-        if fn != "":
-            content = self.open_file(fn)
-        elif url != "":
-            content = self.get_page(url, _prompt)
-        elif q[0] != "":
-            content = self.call_searx_api(q[0])
-        else:
+        try:
+            if fn != "":
+                content = self.open_file(fn)
+            elif url != "":
+                content = self.get_page(url, _prompt)
+            elif q[0] != "":
+                content = self.call_searx_api(q[0])
+            else:
+                content = ""
+        except:
             content = ""
 
         print(count_token(content),"content : \n",content,)
