@@ -20,13 +20,13 @@
 <div id="modellist">
     <form id="modelform">
         <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">
-        <select id="models" name="models" size="auto" hx-request='\"timeout\":300000' hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+        <select id="models" name="models" size="auto" hx-timeout="270000' hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
     </form>
 </div>
 <div id="charlist">
     <form id="charform">
         <img class="refresh" id="refresh_personas" src="/imgs/refresh.png" hx-post="{request_url}/list_personas" hx-trigger="click"  hx-swap="innerHTML" hx-target="#persona" hx-indicator="#spinner">
-        <select id="persona" name="persona" size="auto" hx-request='\"timeout\":300000' hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+        <select id="persona" name="persona" size="auto" hx-timeout="270000' hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
     </form>
 </div>
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
@@ -34,7 +34,7 @@
     <form action="{request_url}/generate" id="input_form">
         <button id="record">Talk</button>
         <textarea id="prompt" name="prompt" placeholder="Type a message..."></textarea>
-        <button hx-request='\"timeout\":300000' hx-post="{request_url}/generate" hx-trigger="click" hx-swap="beforeend" hx-target="#messages" id="sendbutton" hx-indicator="#spinner" autofocus>Send</button>
+        <button hx-post="{request_url}/generate" hx-trigger="click" hx-swap="beforeend" hx-target="#messages" id="sendbutton" hx-indicator="#spinner" autofocus>Send</button>
     </form>
 </div>
 <script type="application/javascript">
@@ -46,18 +46,18 @@
         }
     }
     let toggle_tts={tts_toggle_state};
-    let toggle_autonomy=false;
+    let toggle_autonomy= {autonomy};
 
     // autonomy routine
     const minSeconds = 60;
-    const maxSeconds = 380;
+    const maxSeconds = 270;
     let timer = undefined
     let randomSeconds = 0
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
     function autonomy() {
-        document.getElementById("prompt").value = "[The user has been Away From Keyboard for " + randomSeconds.toString() + " seconds]"
+        document.getElementById("prompt").value = "[System Message:The user is still Away From Keyboard and has already been so for " + randomSeconds.toString() + " seconds]."
         document.getElementById("sendbutton").click()
         if (toggle_autonomy) {
             autonomyTimer()
@@ -89,7 +89,7 @@
         }
         if ((event.code == "Enter") && (!event.shiftKey)) {
             document.getElementById("sendbutton").click()
-       }
+        }
       }
     );
 

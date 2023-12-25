@@ -692,6 +692,7 @@ def check_meta_cmds(prompt):
     matches = re.match(pattern, prompt)
     if matches is not None and len(matches.groups()) > 0:
         return (configure, matches.group(1).lower().capitalize())
+        return (configure, matches.group(1).lower().capitalize())
     if prompt.lower().startswith("forget everything"):
         return (amnesia, "")
     if prompt.lower().startswith("check the news"):
@@ -702,98 +703,6 @@ def check_meta_cmds(prompt):
         shutdown_action()
         exit()
     return (cmd, None)
-
-def cmd_query(keywords):
-    """
-    .. function:: cmd_query(keywords)
-
-        Performs a search query on the internet based on the given keywords.
-
-        :param keywords: The keywords to be used for the search query.
-        :type keywords: str
-
-        :return: The generated search results.
-        :rtype: str
-    """
-    global SearXing, model_config
-    prompt = "Search the internet for "+" ".join(keywords)
-    return generate(Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens), True)
-
-def cmd_surf(url):
-    """
-    :param url: The URL of the website to surf
-    :return: The generated summary of the website content
-    """
-    global SearXing, model_config
-    prompt = "summarize "+url
-    return generate(Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens), True)
-
-def cmd_remember(keywords, gen=True):
-    """
-    :param keywords: (str) The keywords to search for memories.
-    :param gen: (bool) Whether to generate a response if no memory is found. Default is True.
-    :return: (str) The response.
-    """
-    global persona_config, persona_dbid, model_config
-    res = []
-    print("keywords received", keywords)
-    for kw in keywords.split(" "):
-        kw = kw.strip()
-        if kw == "":
-            continue
-        print("looking for kw : ",kw)
-        connection = sqlite3.connect("ltm/memories.db")
-        cursor = connection.cursor()
-        sql = f"SELECT creation_date, summary FROM memories WHERE persona_id='{persona_dbid}' AND keywords LIKE ? ORDER BY id desc"
-        print("sql : ",sql)
-        print("keywords : ",kw)
-        params = ("%##"+kw+"##%")
-        cursor.execute(sql,params)
-        res = cursor.fetchone()
-        connection.close()
-        if len(res) > 0:
-            break
-    if gen:
-        if len(res) == 0:
-            return generate("There are no memories about discussing "+keywords+"before.", True)
-        else:
-            return generate("you remember that on the "+res[0]+" this happened :"+res[1], True)
-    else:
-        return "you remember that on the "+res[0]+" this happened :"+res[1]
-def check_meta_answer(output):
-    """
-        :param output: The output string to check for command matches
-        :return: The modified output string or the original output string
-
-        This method checks if any of the commands in the abilities list are present in the output string. If a command is found, it searches for the corresponding keyword(s) following the
-    * command and returns the modified output string with those keywords processed by executing the corresponding function.
-        """
-    global abilities
-    fn = {
-        "search":cmd_query,
-        "surf":cmd_surf,
-        "remember":cmd_remember
-    }
-    for cmd in abilities:
-        print(f"looking for CMD_{cmd} in prompt")
-        if f"CMD_{cmd}" in output:
-            output=output.replace("\n"," ")
-            print(f'found lvl1 CMD_{cmd}')
-            pattern =r"CMD_"+cmd+r"\s*:*\s*(.+)"
-            print("pattern:",pattern)
-            print('output', output)
-            res = re.search(pattern, output, re.MULTILINE)
-            print("\nregex results:\n",res)
-            print("\nregex groups :\n",res.group(1))
-            try:
-                keywords = res.group(1).strip()
-            except:
-                keywords = ""
-            if keywords == "":
-                print("no keywords")
-                return output
-            return output+"\n"+fn(keywords)
-    return output
 
 def generate(prompt, raw=False):
     global generators, redo_persona_context, persona_config, token_count, model_config, parameters, tokenizer, generator, history, initialized, ability_string
@@ -811,13 +720,6 @@ def generate(prompt, raw=False):
     searxPrompt = Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens)
     if searxPrompt == '':
         searxPrompt = prompt
-
-    ## memory
-    if random.randint(0,1000) < 5:
-        (summary, kw) = generate_keywords()
-        print("trying to remember :",kw)
-        searxPrompt += "\n"+cmd_remember(kw,True)+"\n"
-
 
     if( redo_persona_context):
         ctx = persona_config['context']
@@ -870,7 +772,35 @@ def list_models():
     :return: A string containing HTML options for selecting model configurations.
     """
     global model_config,loaded_model
-    models = glob.glob("./model_configs/*.yaml")
+    models_bin = glob.glob("./models/*")
+    models_config_raw = glob.glob("./model_configs/*.yaml")
+    models_config = []
+    models = []
+    print('\nconfigs available:')
+    for p_raw in models_config_raw:
+        p = p_raw.replace(".yaml", "").replace("./model_configs/", "")
+        models_config.append(p)
+
+    print('\nmodels available:')
+    for b_raw in models_bin:
+        b = b_raw.replace("./models/", "")
+        if b in models_config:
+            models.append(f"./model_configs/{b}.yaml")
+        else:
+            print(f"\n{b} (tabby) doesn't have a valid config")
+
+    # get the ollama models
+    url = f"{oai_config['ollama_server']}/api/tags"
+    response = requests.get(url)
+    rsjson = json.loads(response.text)
+    for model in rsjson['models']:
+        p_raw = model['name']
+        p = p_raw[0:p_raw.find(':')]
+        if p in models_config:
+            models.append(f"./model_configs/{p}.yaml")
+        else:
+            print(f"\n{p} (ollama) doesn't have a valid config")
+
     models.sort()
     rs = ""
     for p_raw in models:
@@ -885,18 +815,6 @@ def list_models():
             selected = "selected"
         rs +=f"<option value='{p}' {selected} class='tabby'>({loader}) {p}</option>"
 
-    # # get the ollama models
-    # url = f"{oai_config['ollama_server']}/api/tags"
-    # response = requests.get(url)
-    # print(url)
-    # rsjson = json.loads(response.text)
-    # print(rsjson)
-    # for model in rsjson['models']:
-    #     p = model['name']
-    #     selected = ""
-    #     if p == loaded_model:
-    #         selected = "selected"
-    #     rs += f"<option value='{p}' {selected} class='ollama'>(O) {p} {model['details']['parameter_size']}</option>"
 
 
     return rs
@@ -969,9 +887,13 @@ def get_index():
     chat_line=chat_line.replace("{request_url}", requrl)
     index=index.replace("{version}",VERSION)
     tts_onoff = "false"
+    autonomy = "false"
     if system_config["do_tts"]:
         tts_onoff="true"
+    if system_config["autonomy"]:
+        autonomy="true"
     index=index.replace("{tts_toggle_state}", tts_onoff)
+    index=index.replace("{autonomy}", autonomy)
     return index
     #send_file("index.html", mimetype='text/html')
 
@@ -1047,8 +969,8 @@ def list_models_action():
     """
     return list_models()
 
-@app.route('/change_models', methods=['GET','POST'])
-def change_models_action():
+@app.route('/load_model', methods=['GET','POST'])
+def load_model_action():
     """
     Change the current model and load it into memory.
 
