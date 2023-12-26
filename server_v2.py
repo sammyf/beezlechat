@@ -877,6 +877,10 @@ def get_index():
     :return: The modified content of the index.html file.
     """
     global system_config,requrl,chat_line
+    print("\n CLIENT IP :")
+    print(request.remote_addr)
+    print(request.headers)
+    print("\n CLIENT IP :")
     index = ''
     with open('templates/index.tpl.html') as f:
         index=f.read()
