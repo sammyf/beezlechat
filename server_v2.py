@@ -1,24 +1,18 @@
-import json
 import math
 import random
 import subprocess
 import sys, os
-import time
-import collections
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, request, send_file
 from flask_cors import CORS
 import yaml
-
 import torch
-import os
 import glob
 import moztts
 import re
 import markdown
 from searxing import SearXing
 import sys
-import gc
 import datetime
 import sqlite3
 import signal
@@ -50,7 +44,7 @@ LOG_FILE = "_logs.txt"
 MINIMUM_MEMORABLE = 4
 MIN_KW_LENGTH = 4
 
-chat_line=""
+
 current_log_file = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 
 """ read default values """
@@ -113,20 +107,20 @@ def generate_ability_string():
         #### OVERRIDE :
         ability_string = ''
 
-def store_memory(summary,keywords):
+def store_memory(summary,keywords, client):
     """
     :param summary: A string representing the summary of the memory.
     :param keywords: A string representing the keywords associated with the memory.
     :return: None
     """
-    global history, persona_dbid
+    global historyMP, persona_dbid
     print("\n\nstoring Memories")
-    if (len(generate_history_string())<=MINIMUM_MEMORABLE):
+    if (len(generate_history_string(client))<=MINIMUM_MEMORABLE):
         return
     now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     connection = sqlite3.connect("ltm/memories.db")
     cursor = connection.cursor()
-    fulltext = json.dumps(history)
+    fulltext = json.dumps(historyMP['client'])
     sql = f"INSERT into memories (creation_date, persona_id, keywords, summary, fulltext) VALUES(?,?,?,?,?)"
     params = (now, persona_dbid, "##"+"##".join(keywords)+"##", summary, fulltext)
     print(persona_dbid, f"{keywords} ::: {summary}")
@@ -210,8 +204,8 @@ def ollama_stop():
 def ollama_restart():
     subprocess.run(["sudo", "/bin/systemctl", "restart", "ollama"])
 
-def ollama_generate(original_prompt):
-    global persona_config,system_config, history
+def ollama_generate(original_prompt, client):
+    global persona_config,system_config, historyMP, usernames
     rs = {
         "model": persona_config["model"]+":"+model_config["tag"],
         "messages": [],
@@ -235,14 +229,14 @@ def ollama_generate(original_prompt):
 
     current_time = datetime.datetime.now()
     now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
-    rs["context"] = f"It is {now}\n.The user's name is {system_config['username']}.\n{persona_config['context']}"
+    rs["context"] = f"It is {now}\n.The user's name is {usernames[client]}.\n{persona_config['context']}"
 
     if original_prompt.strip() != "":
-        rs = generate_history_array(rs)
+        rs = generate_history_array(rs,client)
     else:
         e["role"] = "user"
         e["content"] = "please continue."
-        rs = generate_history_array(rs)
+        rs = generate_history_array(rs, client)
         rs["messages"].append(e)
 
     url = f"{oai_config['ollama_server']}/api/chat"
@@ -262,7 +256,7 @@ def ollama_generate(original_prompt):
                 # print("stream",js)
                 response += js["message"]["content"]
                 if js['done']:
-                    break;
+                    break
     else:
         print('Error:', rs_stream.status_code)
 
@@ -278,14 +272,14 @@ def ollama_generate(original_prompt):
     # return rsjson["message"]["content"]
     return response
 
-def tabby_generate(original_prompt):
+def tabby_generate(original_prompt,client):
     """
     Generate a response using the Tabby API.
 
-    :param prompt: The prompt for generating the response.
+    :param original_prompt: The prompt for generating the response.
     :return: The generated response.
     """
-    global persona_config,system_config, history
+    global persona_config,system_config, historyMP, usernames
 
     with open(f"parameters/{model_config['loader']}_{persona_config['parameters']}.yaml") as f:
         parameters = yaml.safe_load(f)
@@ -294,10 +288,10 @@ def tabby_generate(original_prompt):
     now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
 
     if original_prompt.strip() != "":
-        prompt = f"It is {now}\n.The user's name is {system_config['username']}\nThe chat so far :\n" + generate_history_string() + "\n" + \
+        prompt = f"It is {now}\n.The user's name is {usernames[client]}\nThe chat so far :\n" + generate_history_string(client) + "\n" + \
                       model_config["bot"]
     else:
-        prompt = "The chat so far :\n" + generate_history_string() + "\nplease continue." + model_config["bot"]
+        prompt = "The chat so far :\n" + generate_history_string(client) + "\nplease continue." + model_config["bot"]
 
     seed = random.randint(math.ceil(sys.float_info.min), math.floor(sys.float_info.max))
     print(f"Seed: {seed}")
@@ -305,7 +299,7 @@ def tabby_generate(original_prompt):
     parameters['model']=persona_config['model']
     parameters['prompt']=prompt
     parameters['max_tokens']=persona_config['max_answer_token']
-    parameters['user']=system_config["username"]
+    parameters['user']=usernames[client]
     if 'stop' in model_config.keys():
         parameters["stop"] = model_config["stop"].split(',')
 
@@ -387,28 +381,28 @@ def generate_chat_lines(user, bot):
 finds out at which index the history buffer contains at least half of the context
 this is needed to create memories and to truncate the history buffer accordingly
 """
-def find_half_of_context():
+def find_half_of_context(client):
     """
     Find the cutting point in the history list that corresponds to half the number of tokens in the model configuration.
 
     :return: The cutting point index in the history list.
     """
-    global history, model_config
+    global historyMP, model_config
     half = model_config['max_seq_len']/2
     print(f"looking for {half} tokens ...")
     cutting_point = 0
     token_count = 0
-    for e in history:
+    for e in historyMP['client']:
         token_count += count_tokens(e[1])
         if token_count > half:
             return cutting_point
         cutting_point += 1
     return cutting_point
 
-def generate_history_array( rs):
-    global model_config, history, persona_config
+def generate_history_array( rs, client):
+    global model_config, historyMP, persona_config
 
-    for h in history:
+    for h in historyMP[client]:
         e = {
             'role': '',
             'content': ''
@@ -425,15 +419,15 @@ def generate_history_array( rs):
         rs["messages"].append(e)
     return rs
 
-def generate_history_string():
+def generate_history_string(client):
     """
     Generates a formatted string representing the conversation history.
 
     :return: A string representing the conversation history.
     """
-    global model_config, history
+    global model_config, historyMP
     rs = ""
-    for h in history:
+    for h in historyMP['client']:
         if h[0]=="s":
             if "system" in model_config:
                 rs += model_config["system"].replace("%%prompt%%",h[1])+"\n"
@@ -445,27 +439,27 @@ def generate_history_string():
             rs += model_config["bot"]+" "+h[1] + "\n"
     return rs
 
-def truncate_history():
+def truncate_history(client):
     """
     Truncates the chat history to half its original length and adds a summary of the discussion to the remaining history.
 
     :return: None
     """
-    global history, persona_config
-    current_history = history
-    print("len full:",count_tokens(generate_history_string()))
-    half = find_half_of_context()
+    global historyMP, persona_config
+    current_history = historyMP[client]
+    print("len full:",count_tokens(generate_history_string(client)))
+    half = find_half_of_context(client)
     print("half :", half)
-    history = history[:half]
-    print("len half:",count_tokens(generate_history_string()))
-    summary = generate_memory()
-    history = current_history[half:]
-    print("len half after cut :",count_tokens(generate_history_string()))
-    history.insert(0, "\nsummary of the discussion this far :"+summary+"\ n")
-    print("len with context :",count_tokens(generate_history_string()))
-    print("len with context :",count_tokens(generate_history_string()))
+    historyMP[client] = historyMP[client][:half]
+    print("len half:",count_tokens(generate_history_string(client)))
+    summary = generate_memory(client)
+    historyMP[client] = current_history[half:]
+    print("len half after cut :",count_tokens(generate_history_string(client)))
+    historyMP[client].insert(0, "\nsummary of the discussion this far :"+summary+"\ n")
+    print("len with context :",count_tokens(generate_history_string(client)))
+    print("len with context :",count_tokens(generate_history_string(client)))
 
-def generate_keywords(prompt=""):
+def generate_keywords(client, prompt=""):
     """
     Generate keywords based on the provided prompt.
 
@@ -473,10 +467,11 @@ def generate_keywords(prompt=""):
     :return: tuple containing the summary and keywords generated
     """
     summary=prompt
+    _keywords = []
     if prompt == "":
-        summary=generate("Please summarize the discussion this far.", True)
+        summary=generate("Please summarize the discussion this far.", client,True)
         print('summary generated : ', summary)
-    _keywords=generate ( "give me single keywords for this paragraph:"+summary, True)
+    _keywords=generate ( "give me single keywords for this paragraph:"+summary, client,True)
     keywords={}
     for k in _keywords:
         if len(k) < MIN_KW_LENGTH:
@@ -484,7 +479,7 @@ def generate_keywords(prompt=""):
         keywords.append(k)
     return(summary, keywords)
 
-def generate_memory():
+def generate_memory(client):
     """
     Generate Memory
 
@@ -492,21 +487,21 @@ def generate_memory():
 
     :return: The generated summary of the memory.
     """
-    global history
-    (summary, keywords) = generate_keywords()
+    global historyMP
+    (summary, keywords) = generate_keywords(client)
     store_memory(summary,keywords)
     return summary
 
-def context_management():
+def context_management(client):
     """
     This method is used for context management. It checks if the number of tokens in the history string generated is greater than or equal to the maximum allowed sequence length minus the
     * maximum number of answer tokens and the modulo of the maximum sequence length with 10. If the condition is true, it prints "Context Overflow" and truncates the history.
 
     :return: None
     """
-    if count_tokens(generate_history_string()) >= (model_config['max_seq_len']-(persona_config['max_answer_token']+(model_config['max_seq_len']%10))):
+    if count_tokens(generate_history_string( client)) >= (model_config['max_seq_len']-(persona_config['max_answer_token']+(model_config['max_seq_len']%10))):
      print("Context Overflow.")
-     truncate_history()
+     truncate_history(client)
 
 def load_model(model):
     """
@@ -567,7 +562,9 @@ def configure(persona):
     :param persona: The name of the persona to configure. This is used to load the corresponding persona configuration file located in the "personas" directory.
     :return: The result of calling the generate_chat_lines method with the configured prompt and cut_output.
     """
-    global last_loader, old_persona, persona_config, generator, initialized,tokenizer, cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, redo_greetings, persona_dbid, loaded_model
+    global last_loader, old_persona, persona_config, generator, initialized,tokenizer, \
+        cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, \
+        redo_greetings, persona_dbid, loaded_model
 
     if initialized:
         old_persona = persona_config["name"]
@@ -589,7 +586,7 @@ def configure(persona):
     # if initialized:
     #     generate_memory()
 
-    amnesia("bar")
+    amnesia( None)
     retrieve_persona_dbid()
     print(persona_config["model"])
     if 'parameters' not in persona_config:
@@ -607,7 +604,6 @@ def configure(persona):
 
     # do the greetings
     prompt = f'{persona_config["context"]}\n You are {last_character}\n'
-    history.append(["s",prompt])
     if system_config['do_greeting'] is True:
         cut_output = persona_config['greeting']
     else:
@@ -673,7 +669,7 @@ def generate_tts(string):
 
     return output_file
 
-def check_meta_cmds(prompt):
+def check_meta_cmds(prompt, client):
     """
     Check if prompt matches any meta commands and return a corresponding action.
 
@@ -692,9 +688,13 @@ def check_meta_cmds(prompt):
     matches = re.match(pattern, prompt)
     if matches is not None and len(matches.groups()) > 0:
         return (configure, matches.group(1).lower().capitalize())
-        return (configure, matches.group(1).lower().capitalize())
+    pattern = ".*my name is ([a-zA-Z_0-9]+).*"
+    matches = re.match(pattern, prompt)
+    if matches is not None and len(matches.groups()) > 0:
+        set_username(matches.group(1).lower().capitalize(), client)
+        return (None,None)
     if prompt.lower().startswith("forget everything"):
-        return (amnesia, "")
+        return (amnesia, client)
     if prompt.lower().startswith("check the news"):
         source = random.choice(news_sources)
         print(f"\nNews Source selected : {source}\n")
@@ -704,17 +704,21 @@ def check_meta_cmds(prompt):
         exit()
     return (cmd, None)
 
-def generate(prompt, raw=False):
-    global generators, redo_persona_context, persona_config, token_count, model_config, parameters, tokenizer, generator, history, initialized, ability_string
+def generate(prompt, client, raw=False):
+    global generators, redo_persona_context, persona_config, token_count, model_config, parameters, tokenizer, generator, initialized, ability_string, historyMP, usernames
 
-    (cmd, prmtr)  = check_meta_cmds(prompt)
+    if initialized == False:
+        configure(system_config['persona'])
+
+    if client not in historyMP:
+        historyMP[client]=[]
+        usernames[client]=system_config['username']
+
+    (cmd, prmtr) = check_meta_cmds(prompt, client)
     if cmd != None:
         return htmlize(cmd(prmtr))
     elif prmtr != None:
         prompt = prmtr
-
-    if initialized == False:
-        configure(system_config['persona'])
 
     original_prompt = prompt
     searxPrompt = Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens)
@@ -728,20 +732,19 @@ def generate(prompt, raw=False):
 
     # save the user prompt in the history (with or without model-specific prompt formats)
     # history.append(model_config["user"].replace("%%prompt%%", searxPrompt+"\n"))
-    history.append(["u",searxPrompt])
-
+    historyMP[client].append(["u",searxPrompt])
     if model_config['loader'] == 'tabby':
-        context_management()
+        context_management(client)
 
-    cut_output = generators[model_config['loader']](original_prompt)
+    cut_output = generators[model_config['loader']](original_prompt, client)
+    print(cut_output)
 
     if raw:
         return cut_output
-    # disabling meta answers, as it tends to fall in weird loops
-    # cut_output = check_meta_answer(cut_output)
-    history.append(["b",cut_output])
+
+    historyMP[client].append(["b",cut_output])
     if model_config['loader'] == 'tabby':
-        token_count = count_tokens(generate_history_string())
+        token_count = count_tokens(generate_history_string(client))
         print(f'Token count: {token_count}')
     generate_tts(cut_output)
     save_log(original_prompt, cut_output)
@@ -819,7 +822,7 @@ def list_models():
 
     return rs
 
-def set_username(uname):
+def set_username(uname, client):
     """
     ``set_username(uname)``
     -----------------------
@@ -833,12 +836,11 @@ def set_username(uname):
         str: The updated username.
 
     """
-    global system_config
+    global system_config, usernames
     if uname.strip() == "":
-        uname = "User"
-    system_config['username'] = uname.strip()
-    write_system_config()
-    return system_config['username']
+        uname = system_config["username"]
+    usernames['client'] = uname
+    return usernames['client']
 
 def toggle_tts():
     """
@@ -853,18 +855,20 @@ def toggle_tts():
     write_system_config()
     return "toggled."
 
-def amnesia(foo):
+def amnesia(client = None):
     """
     Clear the history and reset token count if foo is not equal to "bar".
 
     :param foo: A string value.
     :return: None.
     """
-    global user_prompts, responses_ids, history, token_count
-    history = []
+    global user_prompts, responses_ids, historyMP, token_count
+    if client != None:
+        historyMP[client] = []
+    else:
+        historyMP={}
     token_count = 0
-    if foo != "bar":
-        return configure(persona_config['name'])
+
 
 ###
 # Routes
@@ -878,8 +882,7 @@ def get_index():
     """
     global system_config,requrl,chat_line
     print("\n CLIENT IP :")
-    print(request.remote_addr)
-    print(request.headers)
+    print(request.headers.get('CF-Connecting-IP'))
     print("\n CLIENT IP :")
     index = ''
     with open('templates/index.tpl.html') as f:
@@ -908,7 +911,8 @@ def set_username_action():
 
     :return: None
     """
-    return set_username( request.form['username'])
+    client = request.headers.get('CF-Connecting-IP')
+    return set_username( request.form['username'], client)
 
 @app.route('/voice/<rnd>', methods=['GET'])
 def get_voice(rnd):
@@ -961,6 +965,7 @@ def configure_action():
 
     :return: None
     """
+    client = request.headers.get('CF-Connecting-IP')
     persona = request.form['persona']
     return configure(persona)
 
@@ -1039,8 +1044,14 @@ def generate_action():
 
     :return: None
     """
+
     prompt = request.form['prompt']
-    return generate(prompt)
+    client = request.headers.get('CF-Connecting-IP')
+    print("\n\n\n*****")
+    print("\n",client,"\n")
+    print("prompt : ",prompt)
+    print("\n\n\n*****")
+    return generate(prompt, client,False)
 
 @app.route('/whisper', methods=['POST'])
 def whisper_action():
@@ -1051,7 +1062,7 @@ def whisper_action():
     return result["text"]
 
 @app.route('/rpgenerate', methods=['POST'])
-def rpgenerate_action():
+def rpgenerate_action(client):
     """
     Generates an action based on the provided prompt.
 
@@ -1085,10 +1096,10 @@ def rpgenerate_action():
     prompt = data['prompt']
     print(prompt)
     if data['amnesia'] == True:
-        amnesia("bar")
+        amnesia(client)
     persona_config['name'] = data['npc_name']
     system_config['username'] = data['player_name']
-    return generate(prompt)
+    return generate(prompt, client)
 
 @app.route( '/speak', methods=['POST'])
 def speak_action():
@@ -1109,7 +1120,8 @@ def shutdown_action():
 
     :return: None
     """
-    generate_memory()
+    client = request.headers.get('CF-Connecting-IP')
+    generate_memory(client)
     print("shutting down.")
     exit()
     #return True
@@ -1124,7 +1136,8 @@ def on_terminate(signum, frame):
     :return: None
     """
     global connection
-    generate_memory()
+    client = request.headers.get('CF-Connecting-IP')
+    generate_memory(client)
     print("Terminating...")
 
 if __name__ == '__main__':
@@ -1132,7 +1145,8 @@ if __name__ == '__main__':
     torch.set_grad_enabled(False)
     torch.cuda._lazy_init()
     initialized = False
-    history=[]
+    usernames = {}
+    historyMP = {}
     loaded_model = ""
     model = None
     pre_tag = False
