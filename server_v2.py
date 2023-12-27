@@ -120,7 +120,7 @@ def store_memory(summary,keywords, client):
     now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     connection = sqlite3.connect("ltm/memories.db")
     cursor = connection.cursor()
-    fulltext = json.dumps(historyMP['client'])
+    fulltext = json.dumps(historyMP[client])
     sql = f"INSERT into memories (creation_date, persona_id, keywords, summary, fulltext) VALUES(?,?,?,?,?)"
     params = (now, persona_dbid, "##"+"##".join(keywords)+"##", summary, fulltext)
     print(persona_dbid, f"{keywords} ::: {summary}")
@@ -392,7 +392,7 @@ def find_half_of_context(client):
     print(f"looking for {half} tokens ...")
     cutting_point = 0
     token_count = 0
-    for e in historyMP['client']:
+    for e in historyMP[client]:
         token_count += count_tokens(e[1])
         if token_count > half:
             return cutting_point
@@ -427,7 +427,7 @@ def generate_history_string(client):
     """
     global model_config, historyMP
     rs = ""
-    for h in historyMP['client']:
+    for h in historyMP[client]:
         if h[0]=="s":
             if "system" in model_config:
                 rs += model_config["system"].replace("%%prompt%%",h[1])+"\n"
