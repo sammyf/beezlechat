@@ -1,0 +1,13 @@
+max_seq_len: 8192
+alpha_value: 2
+mode: 'raw'
+system: '<|im_start|>system
+  %%prompt%%<|im_end|>
+'
+user: '<|im_start|>user
+%%prompt%%<|im_end|>
+'
+bot: '<|im_start|>assistant
+'
+loader: 'ollama'
+tag: '8x7b-v2.5-q2_K'

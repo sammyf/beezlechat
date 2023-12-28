@@ -1,5 +1,5 @@
 max_seq_len: 32768
-tag: 'latest'
+tag: 'instruct'
 user: '[INST] %%prompt%% [/INST]'
 bot : ''
 loader: 'ollama'

@@ -198,16 +198,13 @@ def tabby_unload():
     }
     response = requests.get(url, headers=headers)
 
-def ollama_stop():
-    subprocess.run(["/bin/sudo", "/bin/systemctl", "restart", "ollama"])
-
 def ollama_restart():
     subprocess.run(["sudo", "/bin/systemctl", "restart", "ollama"])
 
 def ollama_generate(original_prompt, client):
     global persona_config,system_config, historyMP, usernames
     rs = {
-        "model": persona_config["model"]+":"+model_config["tag"],
+        "model": persona_config["model"]+":"+persona_config["tag"],
         "messages": [],
         "stream": True,
         "context": "",
@@ -534,7 +531,7 @@ def load_model(model):
     # just unload any potentially loaded models from tabby if we are using ollama
     if model_config["loader"] == "tabby" and last_loader == "ollama":
         last_loader = "tabby"
-        ollama_stop()
+        ollama_restart()
     if model_config["loader"] == "ollama":
         if last_loader == "tabby":
             ollama_restart()

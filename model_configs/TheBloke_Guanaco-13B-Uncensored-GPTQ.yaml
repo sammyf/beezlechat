@@ -1,0 +1,7 @@
+max_seq_len: 4096
+alpha_value: 1
+user: '### Human:\n %%prompt%%\n'
+bot: '### Assistant:\n'
+mode: 'raw'
+loader: 'tabby'
+stop: '### Human:, ### Assistant:'

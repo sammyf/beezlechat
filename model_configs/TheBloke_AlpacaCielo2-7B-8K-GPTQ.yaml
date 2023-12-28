@@ -1,6 +1,7 @@
 max_seq_len: 8192
-alpha_value: 4
+alpha_value: 1
 user: 'Human: %%prompt%%'
 bot: 'Assistant: '
 mode: 'raw'
 loader: 'tabby'
+stop: 'Human:,Assistant:,</s>'

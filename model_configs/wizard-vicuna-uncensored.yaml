@@ -3,5 +3,5 @@ alpha_value: 1
 user: 'USER: %%prompt%%'
 bot: 'ASSISTANT: '
 mode: 'raw'
-loader: 'tabby'
-stop: 'USER:ASSISTANT:'
+loader: 'ollama'
+stop: 'USER:,ASSISTANT:'

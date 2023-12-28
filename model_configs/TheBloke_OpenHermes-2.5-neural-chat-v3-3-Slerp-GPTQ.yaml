@@ -7,3 +7,4 @@ user: '<|im_start|>user
 bot: '<|im_start|>assistant '
 mode: 'raw'
 loader: 'tabby'
+stop: '<|im_start|>user,<|im_start|>system,<|im_end|>'
