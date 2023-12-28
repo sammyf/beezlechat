@@ -1,10 +1,23 @@
 # beezlechat
 ### Persona-centric Frontend with TTS and internet access for basically any openAI-compatible LLM API Server
 
-(but written with the excellent [Tabby](https://github.com/theroyallab/tabbyAPI/) in mind.)
+(originally written with the excellent [Tabby](https://github.com/theroyallab/tabbyAPI/) in mind, but now expanded to use the equally excellent [ollama](https://ollama.ai/) too)
 
 This is a personal project, but I figured someone might get a kick out of it or use it to show bad coding practices. 
-Anyway, create a virtual environment with 
+
+### requirements:
+The following is NOT optional, so I assume all the following stuff is available and running:
+
+- tabby
+- ollama
+- at least a Large Language Model for one of those two backends.
+
+Optionally:
+
+- a searx-ng instance serving json over its API. That is used to do internet searches.
+
+### installation:
+create a virtual environment with 
 
 `python -m venv bchat`
 
@@ -16,11 +29,17 @@ then install the required packages with
 
 `pip install -r requirements.txt`
 
-Copy `system_config.yaml.dist` and searxing_config.yaml.dist to `system_config.yaml` and `searxing_config.yaml` and edit them to reflect your configuration
+Copy `system_config.yaml.dist` and `searxing_config.yaml.dist` to `system_config.yaml` and `searxing_config.yaml` and edit them to reflect your configuration
 
-Create a symlink to your models directory if you're using tabby or another API server. If you haven't got any models yet there is a handy `download_models.py` script to ... well download models 
+* Create a symlink to your models directory if you're using tabby or another API server. If you haven't got any models yet there is a handy `download_models.py` script to ... well download models 
 
 next execute `./start.sh` and open your browser to the host and port you set in `system_config.yaml` (http://127.0.0.1:9090 by default)
+
+Optional :
+
+* create a model_config file for the model you want to use if there is not one yet. The file should be named after the directory 
+the model is in. Check the existing files for details
+* modify the initial persona to load in system_config.yaml and modify the model to use in the personas/YOU-PERSONA.yaml
 
 ### hidden features :
 not really hidden (just check the Searxing.py file for details. It implements actually more than just calling Searx): ask the LLM nicely to 
