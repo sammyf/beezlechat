@@ -1,0 +1,9 @@
+max_seq_len: 4096
+tag: 'instruct'
+system: '%%prompt%%'
+user: 'USER: %%prompt%%'
+bot : 'ASSSISTANT:'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: 'USER:,</s>'

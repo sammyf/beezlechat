@@ -4,6 +4,7 @@ sentencepiece>=0.1.97
 ninja==1.11.1
 flask
 flask_cors
+flask-uploads
 tts
 pydub
 markdown

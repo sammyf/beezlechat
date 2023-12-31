@@ -37,6 +37,12 @@
         <button hx-post="{request_url}/generate" hx-trigger="click" hx-swap="beforeend" hx-target="#messages" id="sendbutton" hx-indicator="#spinner" autofocus>Send</button>
     </form>
 </div>
+<div id="imgupload">
+    <form id="fileUploadForm" hx-post="/upload" hx-trigger="submit"  hx-indicator="#spinner"  hx-swap="beforeend"  hx-target="#messages" enctype="multipart/form-data" >
+        <input type="file" id="file" name="file" accept="image/*">
+        <button type="submit">Upload</button>
+    </form>
+</div>
 <script type="application/javascript">
     function label_ttsbtn() {
         if( toggle_tts) {
@@ -136,8 +142,8 @@
     let audioElem = document.getElementById('tts')
 
     document.addEventListener('keydown', (event) => {
-        if (event.ctrlKey) {
-            console.log('Control key is pressed.')
+        if (event.altKey) {
+            console.log('ALT key is pressed.')
             if (! recordButton.hasAttribute('data-method'))  {
                 recordButton.setAttribute('data-method', 'start')
             }

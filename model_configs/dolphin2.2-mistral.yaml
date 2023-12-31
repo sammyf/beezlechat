@@ -9,4 +9,4 @@ bot : '<im_start>assistant:
 loader: 'ollama'
 alpha_value: 1
 mode: raw
-stop: '<im_start>,<im_end>'
+stop: '<im_end>'

@@ -11,3 +11,4 @@ bot: '<|im_start|>assistant
 '
 loader: 'ollama'
 tag: '8x7b-v2.5-q2_K'
+stop: '<|im_end|>'

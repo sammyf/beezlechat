@@ -218,3 +218,16 @@ input.option.selected {
     color: white
 }
 
+#imgupload {
+    position: fixed;   /* Fix position on the bottom left of the screen */
+    bottom: 0;         /* Position at bottom-most part */
+    left: 0;           /* Position at left-most side */
+}
+
+.uploaded_img {
+    width: 300px;
+    height: auto;
+    border: 1px #0b0f19;
+    margin-left: auto;
+    margin-right: auto;
+}

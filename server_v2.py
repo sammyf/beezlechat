@@ -1,9 +1,10 @@
+import base64
 import math
 import random
 import subprocess
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from flask import Flask, request, send_file
+from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import yaml
 import torch
@@ -14,7 +15,6 @@ import markdown
 from searxing import SearXing
 import sys
 import datetime
-import sqlite3
 import signal
 import requests
 import json
@@ -76,20 +76,6 @@ def write_system_config():
         # Write the dictionary to the file
         yaml.dump(system_config, f)
 
-def retrieve_persona_dbid():
-    """
-    Retrieves the database id of the persona.
-
-    :return: The database id of the persona.
-    """
-    global persona_config,persona_dbid
-    connection = sqlite3.connect("ltm/memories.db")
-    cursor = connection.cursor()
-    cursor.execute(f"SELECT id FROM personas WHERE character='{persona_config['name']}'")
-    persona_dbid = cursor.fetchone()[0]
-    print(persona_dbid)
-    connection.close()
-
 def generate_ability_string():
     """
     Generate ability string. Disabled for now.
@@ -106,27 +92,6 @@ def generate_ability_string():
         print(ability_string)
         #### OVERRIDE :
         ability_string = ''
-
-def store_memory(summary,keywords, client):
-    """
-    :param summary: A string representing the summary of the memory.
-    :param keywords: A string representing the keywords associated with the memory.
-    :return: None
-    """
-    global historyMP, persona_dbid
-    print("\n\nstoring Memories")
-    if (len(generate_history_string(client))<=MINIMUM_MEMORABLE):
-        return
-    now = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    connection = sqlite3.connect("ltm/memories.db")
-    cursor = connection.cursor()
-    fulltext = json.dumps(historyMP[client])
-    sql = f"INSERT into memories (creation_date, persona_id, keywords, summary, fulltext) VALUES(?,?,?,?,?)"
-    params = (now, persona_dbid, "##"+"##".join(keywords)+"##", summary, fulltext)
-    print(persona_dbid, f"{keywords} ::: {summary}")
-    cursor.execute(sql, params)
-    connection.commit()
-    connection.close()
 
 def save_log(userline, botline):
     """
@@ -363,12 +328,16 @@ def count_tokens(txt):
         return word_count(txt)
     return tabby_count_tokens(txt)
 
-def generate_chat_lines(user, bot):
+def generate_chat_lines(user, bot, img_name=None):
     """
     :param user: The user's message to be replaced in the chat line.
     :param bot: The bot's response to be replaced in the chat line.
     :return: The generated chat line with user and bot messages replaced.
     """
+    if img_name is not None:
+        with open('templates/upload.tpl.html', "r") as f:
+            uploadTpl = f.read()
+        user = user + uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\",""))
     rs = chat_line.replace("%%user%%", user)\
         .replace("%%bot%%", bot)\
         .replace('%%botname%%', persona_config["name"])
@@ -486,7 +455,6 @@ def generate_memory(client):
     """
     global historyMP
     (summary, keywords) = generate_keywords(client)
-    store_memory(summary,keywords)
     return summary
 
 def context_management(client):
@@ -584,7 +552,6 @@ def configure(persona):
     #     generate_memory()
 
     amnesia( None)
-    retrieve_persona_dbid()
     print(persona_config["model"])
     if 'parameters' not in persona_config:
         persona_config['parameters'] = 'default'
@@ -746,6 +713,43 @@ def generate(prompt, client, raw=False):
     generate_tts(cut_output)
     save_log(original_prompt, cut_output)
     return generate_chat_lines(original_prompt, htmlize(cut_output))
+
+def image_analysis(img, img_name, client):
+    global persona_config, system_config, historyMP, usernames
+    url = f"{oai_config['ollama_server']}/api/chat"
+    print("len: ", len(img))
+    headers = {
+        "Content-Type": "application/json",
+    }
+
+    rs = {
+        "model": "bakllava",
+        "stream": False,
+        "messages": [{
+            "role":"user",
+            "content": "describe this image?",
+            "images": [img]
+        }],
+        "options": {}
+    }
+    with open(f"parameters/ollama_{persona_config['parameters']}.yaml") as f:
+         rs['options'] = yaml.safe_load(f)
+    seed = random.randint(math.ceil(sys.float_info.min), math.floor(sys.float_info.max))
+    rs["options"]["seed"] = seed
+    rs["options"]["stop"] = ['USER:','</s>']
+
+    #rsai = requests.post(url, headers=headers, data=json.dumps(rs, indent=0))
+    # print(rsai.json())
+    # response = rsai.json()['message']['content']
+
+    jsdata = json.dumps(rs, indent=2)
+    rs_stream = requests.post(url,  headers=headers, data=jsdata, stream=False)
+    response = rs_stream.json()['message']['content']
+
+    historyMP[client].append(["u","describe this image. [image file removed from chat history]"])
+    historyMP[client].append(["b",response])
+    generate_tts(response)
+    return generate_chat_lines("describe this image", response, img_name)
 
 def list_personas():
     """
@@ -1014,6 +1018,15 @@ def get_face_action(persona):
     filename=f"./personas/{persona}.png"
     return send_file(filename, mimetype='image/png')
 
+@app.route('/uploads/<img>', methods=['GET'])
+def get_uploads_action(img):
+    """
+        :param persona: The persona of the face image to retrieve. It is a string representing the persona.
+        :return: The face image associated with the specified persona in PNG format.
+    """
+    filename=f"./uploads/{img}"
+    return send_file(filename, mimetype='image')
+
 @app.route('/imgs/spinner.gif', methods=['GET'])
 def get_img_action():
     """
@@ -1098,6 +1111,23 @@ def rpgenerate_action(client):
     system_config['username'] = data['player_name']
     return generate(prompt, client)
 
+@app.route("/upload", methods=["POST"])
+def upload():
+    print("\nUpload\n")
+    print(request.files.keys())
+    if "file" not in request.files:
+        return jsonify({"error": "Please select a file."}), 425
+    client = request.headers.get('CF-Connecting-IP')
+    file = request.files["file"]
+    file_in_bytes = file.read()
+    base64_encoded = base64.b64encode(file_in_bytes).decode('Utf-8')
+    with open(f"uploads/{file.filename}.txt", "w") as f:
+        f.write(base64_encoded)
+    with open(f"uploads/{file.filename}", "wb") as f:
+        f.write(file_in_bytes)
+    print("done uploading.")
+    return image_analysis(base64_encoded, file.filename, client)
+
 @app.route( '/speak', methods=['POST'])
 def speak_action():
     """
@@ -1118,7 +1148,6 @@ def shutdown_action():
     :return: None
     """
     client = request.headers.get('CF-Connecting-IP')
-    generate_memory(client)
     print("shutting down.")
     exit()
     #return True
@@ -1132,12 +1161,12 @@ def on_terminate(signum, frame):
     :param frame: the current stack frame
     :return: None
     """
-    global connection
     client = request.headers.get('CF-Connecting-IP')
     generate_memory(client)
     print("Terminating...")
 
 if __name__ == '__main__':
+    ollama_restart()
     read_system_config()
     torch.set_grad_enabled(False)
     torch.cuda._lazy_init()
