@@ -16,3 +16,4 @@ summarizer
 PyPDF2
 exllamav2
 openai-whisper
+ffmpeg-python

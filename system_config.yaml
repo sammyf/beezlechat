@@ -1,8 +1,10 @@
-autonomy: false
+autonomy: true
 do_greeting: true
 do_tts: true
+do_wav2lip: true
 host: 0.0.0.0
 log: true
-persona: Beezle
+multimodal: bakllava
+persona: Jorah
 port: 9706
 username: Sammy

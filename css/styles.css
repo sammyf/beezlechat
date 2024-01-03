@@ -5,44 +5,61 @@ body {
 }
 
 #container {
-    position: relative;
+    position: absolute;
+    top: 0px;
     overflow: auto;
     min-width: 300px;
-    min-width: 300px;
     max-height: 100%;
+    display: flex;
+    flex-direction: column-reverse;
+    height: calc(100vh - 70px);
+}
+
+#fade {
+    position: absolute;
+    top: 0px;
+    width: 100%;
+    min-height: 500px;
+    max-height: 500px;
+    background: linear-gradient(to bottom, #0B0F19, transparent);
+    z-index: 100;
 }
 
 div.bot_line {
-    float: left;
-    width:90%;
+    width:auto;
     text-align: left;
     background-color: #10002f;
     border-width: 1px;
     border-style: dotted;
     border-color: #608a7d;
     border-radius: 15px;
-    clear: both;
     margin-bottom: 30px;
     vertical-align:  top;
 }
 
 div.user_line {
-    float: right;
-    width:90%;
-    text-align:right ;
+    text-align: right;
+    width:auto;
     background-color: #011506;
     border-width: 1px;
     border-style: dotted;
     border-color: #608a7d;
     border-radius: 15px;
-    clear: both;
     margin-bottom: 10px;
     vertical-align:  top;
 }
-
+.user_table {
+    float: right;
+    min-width: 600px;
+}
 #messages {
     overflow-y: auto;
     clear:both;
+}
+.chat_line {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 img.userimg {
@@ -56,6 +73,15 @@ img.userimg {
 
 img.botimg {
     height:100px;
+    border-width: 1px;
+    border-style: solid;
+    border-color: darkslateblue;
+    border-radius: 15px;
+}
+
+.botanim {
+    max-width: 100px;
+    max-height: 100px;
     border-width: 1px;
     border-style: solid;
     border-color: darkslateblue;
@@ -141,8 +167,39 @@ div.bot_margin{
     background-color: rgba(96,138,125,0.5);
     text-align: center;
 }
+#videocontainer {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width:100%;
+    height:300px;
+    text-align: center;
+    z-index: 1000;
+}
+
+#videoctrl {
+    top:5px;
+    width: 256px;
+    height: 256px;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: rgba(96,138,125,0.5);
+    horiz-align: center;
+    border: 8px solid #000000;
+    border-radius: 15px;
+}
 
 #toggle_tts {
+    background-color: #608a7d;
+    color: #ffffff;
+    max-width:50px;
+    min-width:50px;
+    font-size: x-small;
+    font-weight: bolder;
+    border: 0px;
+}
+
+#toggle_extras {
     background-color: #608a7d;
     color: #ffffff;
     max-width:50px;
@@ -157,6 +214,7 @@ div.bot_margin{
     top:40px;
     right:10px;
     background-color: rgba(138, 96, 115, 0.5);
+    z-index: 200;
 }
 
 #charlist {
@@ -164,6 +222,7 @@ div.bot_margin{
     top:10px;
     right:10px;
     background-color: rgba(96,138,125,0.5);
+    z-index: 200;
 }
 
 #persona {
@@ -228,6 +287,42 @@ input.option.selected {
     width: 300px;
     height: auto;
     border: 1px #0b0f19;
+    margin: 5px 5px 5px 5px
+}
+
+.tc_center {
+    text-align: center;
+}
+.upload_table {
+    width: 400px;
     margin-left: auto;
     margin-right: auto;
+}
+
+div.prsna {
+    float: right;
+    margin-right: 5px;
+    margin-bottom: 2px;
+    padding 3px;
+    border: 1px #0b0f19;
+    background-color: #0B0F19;
+    border-radius: 15px;
+}
+td.prsn_portrait {
+    text-align: center;
+}
+img.prsn_portrait {
+    width:50px;
+    height:50px;
+}
+td.prsn_details {
+    text-align: center;
+    padding: 2px;
+}
+span.prsn_name {
+    font-weight: bold;
+    font-size: small;
+}
+span.prsn_model {
+    font-size: x-small;
 }

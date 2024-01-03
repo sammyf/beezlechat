@@ -8,20 +8,38 @@
     <link rel="stylesheet" href="css/codehilite.css">
 </head>
 <body>
+<div id="videocontainer">
+    <div id="videoctrl">
+        <video src="{request_url}video/1234"  autoplay id="w2l"></video>
+        <video src="{request_url}idle/1234"  autoplay loop id="idlevid"></video>
+    </div>
+</div>
+<div id="fade">
+</div>
+
 <div id="container">
     <div id="messages">{request_url}</div>
     <div id="spacer">&nbsp;</div>
 </div>
 <div id="audioctrl">
-    <audio src="/voice" controls autoplay id="tts"></audio><br>
+    <audio src="" controls autoplay id="tts"></audio><br>
     <input type="button" id="toggle_tts" name="toggle_tts" value="{tts_onoff}" hx-trigger="click" hx-post="{request_url}/toggle_tts" hx-indicator="#spinner" >
     <label for="toggle_tts"></label>
 </div>
+
+<!--<div id="extras">-->
+<!--    <input type="button" id="toggle_extras" name="toggle_extras" value="{selected_extras}" hx-trigger="click" hx-post="{request_url}/toggle_extras" hx-indicator="#spinner" >-->
+<!--</div>-->
+
+<!--<div id="modellist">-->
+<!--    <form id="modelform">-->
+<!--        <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">-->
+<!--        <select id="models" name="models" size="auto" hx-timeout="270000' hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>-->
+<!--    </form>-->
+<!--</div>-->
 <div id="modellist">
-    <form id="modelform">
         <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">
-        <select id="models" name="models" size="auto" hx-timeout="270000' hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
-    </form>
+        <span id="models"></span>
 </div>
 <div id="charlist">
     <form id="charform">
@@ -44,6 +62,33 @@
     </form>
 </div>
 <script type="application/javascript">
+
+    let extra_option={extra_option}
+    let toggle_tts={tts_toggle_state};
+    let toggle_autonomy= {autonomy};
+
+    w2l = document.getElementById('w2l');
+    idlevid = document.getElementById("idlevid")
+    w2l.addEventListener('ended', use_idle, false);
+    w2l.addEventListener('loadeddata', switch_vid, false);
+    function use_idle() {
+        w2l.style.display = 'none';
+        idlevid.style.display = 'block';
+    }
+
+    function switch_vid() {
+        idlevid.src = "{request_url}/idle/rnd="+Math.random().toString();
+        idlevid.style.display = 'none';
+        w2l.style.display = 'block';
+        w2l.play();
+    }
+
+    // autonomy routine
+    const minSeconds = 120;
+    const maxSeconds = 270;
+    let timer = undefined
+    let randomSeconds = 0
+
     function label_ttsbtn() {
         if( toggle_tts) {
             document.getElementById("toggle_tts").value="TTS ON";
@@ -51,14 +96,7 @@
             document.getElementById("toggle_tts").value="TTS OFF";
         }
     }
-    let toggle_tts={tts_toggle_state};
-    let toggle_autonomy= {autonomy};
 
-    // autonomy routine
-    const minSeconds = 120;
-    const maxSeconds = 270;
-    let timer = undefined
-    let randomSeconds = 0
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -104,14 +142,23 @@
     })
 
     document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if(evt.target.id == "persona") {
+        if(evt.target.id != "models") {
             document.getElementById("refresh_models").click()
         }
         document.getElementById("prompt").value=""
-        if( toggle_tts) {
-            document.getElementById("tts").src="/voice/rnd="+Math.random().toString();
+        switch( extra_option) {
+            case 2:
+                w2l.src="/video/rnd="+Math.random().toString();
+                break;
+            case 1:
+                if( toggle_tts) {
+                    document.getElementById("tts").src="/voice/rnd="+Math.random().toString();
+                }
+                break;
+            default:
+                break;
         }
-        window.scrollTo(0, document.body.scrollHeight);
+        document.getElementById("messages").scrollTo(0, document.getElementById("messages").scrollHeight);
         document.getElementById("prompt").focus()
         if(toggle_autonomy) {
             autonomyTimer()
@@ -129,6 +176,19 @@
     window.onload =  function() {
         document.getElementById("refresh_personas").click();
         label_ttsbtn();
+        switch( extra_option) {
+            case 2:
+                document.getElementById("audioctrl").style.visibility='hidden';
+                idlevid.src = "{request_url}/idle/rnd="+Math.random().toString();
+                w2l.style.display = 'none';
+                break;
+            case 1:
+                document.getElementById("videoctrl").style.visibility='hidden';
+                break;
+            case 0:
+                document.getElementById("audioctrl").style.visibility='hidden';
+                document.getElementById("videoctrl").style.visibility='hidden';
+        }
 
         /* AUDIO RECORDING */
     }
@@ -236,6 +296,7 @@
     function isPlaying() {
         return !audioElem.paused && !audioElem.ended && audioElem.currentTime > 0;
     }
+
 
     /* ************************************************************************
      Continuous Listening That kind of work, but only leads to problems

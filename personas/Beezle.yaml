@@ -7,4 +7,5 @@ speaker: "p376"
 parameters: "free_spirit"
 max_answer_token: 512
 tag: "latest"
+disable_w2l: true
 

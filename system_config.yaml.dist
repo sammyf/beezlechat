@@ -6,3 +6,4 @@ persona: Ezza
 port: 9090
 username: Sammy
 autonomy: true
+multimodal: llava

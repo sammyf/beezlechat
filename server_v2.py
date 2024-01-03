@@ -1,8 +1,12 @@
 import base64
 import math
 import random
+import shutil
 import subprocess
 import sys, os
+
+import ffmpeg
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
 from flask_cors import CORS
@@ -20,6 +24,7 @@ import requests
 import json
 import whisper
 
+
 VERSION='2'
 app = Flask(__name__)
 CORS(app)
@@ -27,6 +32,7 @@ CORS(app)
 MODEL_PATH="models/"
 
 last_loader=""
+requrl="http://127.0.0.1"
 
 with open('oai.yaml') as f:
     oai_config = yaml.safe_load(f)
@@ -51,19 +57,16 @@ current_log_file = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 with open(f'model_configs/defaults.yaml') as f:
     default_model_config = yaml.safe_load(f)
 
+with open('system_config.yaml') as f:
+    system_config = yaml.safe_load(f)
+
 """ read Templates """
+# if system_config['do_wav2lip']:
+#     with open('./templates/chat_line_animated.tpl.html') as f:
+#         chat_line="\n".join(f.readlines())
+# else:
 with open('./templates/chat_line.tpl.html') as f:
-    chat_line="\n".join(f.readlines())
-
-def read_system_config():
-    """
-    Reads the system configuration from the 'system_config.yaml' file.
-
-    :return: None
-    """
-    global system_config
-    with open('system_config.yaml') as f:
-        system_config = yaml.safe_load(f)
+     chat_line="\n".join(f.readlines())
 
 def write_system_config():
     """
@@ -334,13 +337,18 @@ def generate_chat_lines(user, bot, img_name=None):
     :param bot: The bot's response to be replaced in the chat line.
     :return: The generated chat line with user and bot messages replaced.
     """
-    if img_name is not None:
-        with open('templates/upload.tpl.html', "r") as f:
-            uploadTpl = f.read()
-        user = user + uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\",""))
-    rs = chat_line.replace("%%user%%", user)\
+    ## moving the animation to the top of the screen and keeping the portrait
+    ## in the chatlines
+    # if img_name is not None:
+    #     with open('templates/upload.tpl.html', "r") as f:
+    #         uploadTpl = f.read()
+    #     user = (uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\","")).
+    #             replace("%%user%%", user))
+
+    rs = (chat_line.replace("%%user%%", user)\
         .replace("%%bot%%", bot)\
         .replace('%%botname%%', persona_config["name"])
+          .replace("%%rnd%%", str(random.randint(0,9999999))))
     return rs
 
 """ 
@@ -611,6 +619,33 @@ def xmlesc(txt):
     """
     return txt.translate(table)
 
+
+def run_w2l_blocking( target):
+    command = "./w2l.sh"
+    subprocess.call([command, target])
+
+def run_w2l_api( target):
+    global persona_config
+    if "disable_w2l" in persona_config and persona_config["disable_w2l"] == True:
+        print("\n\nbypassing W2L\n\n")
+        try:
+            os.remove("/media/GINTONIC/AIArtists/beezlechat/video/result.mp4")
+        except:
+            pass
+        video = ffmpeg.input(f"/media/GINTONIC/AIArtists/Wav2Lip/targets/{target}_idle_long.mp4").video
+        audio = ffmpeg.input("/media/GINTONIC/AIArtists/beezlechat/audio/tts.wav").audio
+        out = ffmpeg.output(video, audio, "/media/GINTONIC/AIArtists/beezlechat/video/result.mp4", vcodec='copy',
+                            acodec='aac', strict='experimental')
+        out.run()
+        return
+    rs={
+        "checkpoint_path": "checkpoints/wav2lip.pth",
+        "face": f"/media/GINTONIC/AIArtists/Wav2Lip/targets/{target}_talk.mp4",
+        "audio": "/media/GINTONIC/AIArtists/beezlechat/audio/tts.wav",
+        "outfile": "/media/GINTONIC/AIArtists/beezlechat/video/result.mp4"
+    }
+    requests.post(oai_config['w2l_endpoint'], data=json.dumps(rs, indent=0))
+
 def generate_tts(string):
     """
     :param string: The text to be converted to speech.
@@ -629,8 +664,13 @@ def generate_tts(string):
         string = '*Empty reply, try regenerating*'
     else:
         output_file = './audio/tts.wav'
+        if os.path.exists(output_file):
+            os.unlink(output_file)
         mozTTS.moztts(string, persona_config['voice'], persona_config['speaker'], persona_config['language'], output_file)
-
+        if system_config['do_wav2lip']:
+            while not os.path.exists(output_file):
+                pass
+            run_w2l_api(persona_config['name'])
     return output_file
 
 def check_meta_cmds(prompt, client):
@@ -648,6 +688,24 @@ def check_meta_cmds(prompt, client):
     'https://www.npr.org',
     'https://www.tageschau.de'
     ]
+    display_personas = [
+        'who can i talk to?',
+        'show me the personas',
+        'who is available?',
+        'personas'
+    ]
+    clean_prompt = prompt.lower().strip()
+    print("\n\nClean Prompt :",clean_prompt,"\n\n")
+    if clean_prompt == ("forget everything"):
+        return (amnesia, client)
+    if clean_prompt in display_personas:
+        print("display_pesonas")
+        return (personas_table, client )
+    if clean_prompt.startswith("check the news"):
+        source = random.choice(news_sources)
+        print(f"\nNews Source selected : {source}\n")
+        return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
+
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
     matches = re.match(pattern, prompt)
     if matches is not None and len(matches.groups()) > 0:
@@ -657,12 +715,6 @@ def check_meta_cmds(prompt, client):
     if matches is not None and len(matches.groups()) > 0:
         set_username(matches.group(1).lower().capitalize(), client)
         return (None,None)
-    if prompt.lower().startswith("forget everything"):
-        return (amnesia, client)
-    if prompt.lower().startswith("check the news"):
-        source = random.choice(news_sources)
-        print(f"\nNews Source selected : {source}\n")
-        return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
     if "##shutdown now##" in prompt.lower():
         shutdown_action()
         exit()
@@ -674,9 +726,7 @@ def generate(prompt, client, raw=False):
     if initialized == False:
         configure(system_config['persona'])
 
-    if client not in historyMP:
-        historyMP[client]=[]
-        usernames[client]=system_config['username']
+    initialize_historyMP(client)
 
     (cmd, prmtr) = check_meta_cmds(prompt, client)
     if cmd != None:
@@ -723,11 +773,11 @@ def image_analysis(img, img_name, client):
     }
 
     rs = {
-        "model": "bakllava",
+        "model": system_config['multimodal'],
         "stream": False,
         "messages": [{
             "role":"user",
-            "content": "describe this image?",
+            "content": "describe this image in great details, please.",
             "images": [img]
         }],
         "options": {}
@@ -746,10 +796,16 @@ def image_analysis(img, img_name, client):
     rs_stream = requests.post(url,  headers=headers, data=jsdata, stream=False)
     response = rs_stream.json()['message']['content']
 
+    initialize_historyMP(client)
     historyMP[client].append(["u","describe this image. [image file removed from chat history]"])
     historyMP[client].append(["b",response])
     generate_tts(response)
-    return generate_chat_lines("describe this image", response, img_name)
+    return generate_chat_lines("describe this image in great details, please.", response, img_name)
+
+def initialize_historyMP(client):
+    global system_config
+    historyMP[client] = []
+    usernames[client] = system_config['username']
 
 def list_personas():
     """
@@ -818,10 +874,54 @@ def list_models():
         if p == loaded_model:
             selected = "selected"
         rs +=f"<option value='{p}' {selected} class='tabby'>({loader}) {p}</option>"
-
-
-
     return rs
+
+def list_model():
+    global model_config,loaded_model
+    models_bin = glob.glob("./models/*")
+    models_config_raw = glob.glob("./model_configs/*.yaml")
+    models_config = []
+    models = []
+    print('\nconfigs available:')
+    for p_raw in models_config_raw:
+        p = p_raw.replace(".yaml", "").replace("./model_configs/", "")
+        models_config.append(p)
+
+    print('\nmodels available:')
+    for b_raw in models_bin:
+        b = b_raw.replace("./models/", "")
+        if b in models_config:
+            models.append(f"./model_configs/{b}.yaml")
+        else:
+            print(f"\n{b} (tabby) doesn't have a valid config")
+
+    # get the ollama models
+    url = f"{oai_config['ollama_server']}/api/tags"
+    response = requests.get(url)
+    rsjson = json.loads(response.text)
+    for model in rsjson['models']:
+        p_raw = model['name']
+        p = p_raw[0:p_raw.find(':')]
+        if p in models_config:
+            models.append(f"./model_configs/{p}.yaml")
+        else:
+            print(f"\n{p} (ollama) doesn't have a valid config")
+
+    models.sort()
+    rs = ""
+    for p_raw in models:
+        with open(p_raw) as f:
+            tmp=yaml.safe_load(f)
+            ldr = tmp['loader']
+
+        loader = ldr[0].upper()
+        p=p_raw.replace(".yaml","").replace("./model_configs/","")
+        selected=""
+        if p == loaded_model:
+            selected = "selected"
+            output = f'({loader}) {p}'
+        rs +=f"<option value='{p}' {selected} class='tabby'>({loader}) {p}</option>"
+    return output
 
 def set_username(uname, client):
     """
@@ -855,6 +955,29 @@ def toggle_tts():
     system_config['do_tts'] = (system_config['do_tts']^True)
     write_system_config()
     return "toggled."
+
+def personas_table(client=None):
+    global persona_config, requrl
+    print("generating persona's table")
+    personas = glob.glob("./personas/*.yaml")
+    personas.sort()
+    rs = ""
+    with open('templates/persona_cell.tpl.html', 'r') as f:
+        tpl = f.read()
+
+    for p_raw in personas:
+        with open(p_raw) as f:
+            prsna = yaml.safe_load(f)
+        with open(f"model_configs/{prsna['model']}.yaml") as f:
+            mdl = yaml.safe_load(f)
+        if mdl["loader"] == "ollama":
+            m = f"(o) {prsna['model']}"
+        else:
+            m = f"(t) {prsna['model']}"
+        p=p_raw.replace(".yaml","").replace("./personas/","")
+        pdiv=tpl.replace("{path}",f"{requrl}/get_face/{p}").replace("{name}",p).replace("{model}",m)
+        rs += pdiv
+    return generate_chat_lines("who can I talk to?", rs)
 
 def amnesia(client = None):
     """
@@ -902,6 +1025,13 @@ def get_index():
         autonomy="true"
     index=index.replace("{tts_toggle_state}", tts_onoff)
     index=index.replace("{autonomy}", autonomy)
+    extras = 0
+    if system_config['do_wav2lip']:
+        extras = 2
+    elif system_config['do_tts']:
+        extras = 1
+
+    index=index.replace("{extra_option}",str(extras))
     return index
     #send_file("index.html", mimetype='text/html')
 
@@ -930,6 +1060,15 @@ def get_voice(rnd):
     and returns it as a WAV file.
     """
     return send_file("audio/tts.wav", mimetype='audio/x-wav')
+
+@app.route('/video/<rnd>', methods=['GET'])
+def get_video(rnd):
+    return send_file("video/result.mp4", mimetype='video/mp4')
+
+@app.route('/idle/<rnd>', methods=['GET'])
+def get_idle(rnd):
+    global persona_config
+    return send_file(f"video/{persona_config['name']}_idle.mp4", mimetype='video/mp4')
 
 @app.route('/css/styles.css', methods=['GET'])
 def get_css():
@@ -977,7 +1116,7 @@ def list_models_action():
 
     :return: a list of models.
     """
-    return list_models()
+    return list_model()
 
 @app.route('/load_model', methods=['GET','POST'])
 def load_model_action():
@@ -1121,8 +1260,8 @@ def upload():
     file = request.files["file"]
     file_in_bytes = file.read()
     base64_encoded = base64.b64encode(file_in_bytes).decode('Utf-8')
-    with open(f"uploads/{file.filename}.txt", "w") as f:
-        f.write(base64_encoded)
+    # with open(f"uploads/{file.filename}.txt", "w") as f:
+    #     f.write(base64_encoded)
     with open(f"uploads/{file.filename}", "wb") as f:
         f.write(file_in_bytes)
     print("done uploading.")
@@ -1167,7 +1306,6 @@ def on_terminate(signum, frame):
 
 if __name__ == '__main__':
     ollama_restart()
-    read_system_config()
     torch.set_grad_enabled(False)
     torch.cuda._lazy_init()
     initialized = False

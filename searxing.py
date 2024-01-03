@@ -206,22 +206,24 @@ class SearXing:
         print(file_name)  # Output: example.txt
         ```
         """
-        rs = ""
-        query_raw = ""
-        for qry in self.FILE_QUERY_PROMPTS:
-            pattern = rf"{qry}(.*)"
-            match = re.search(
-                pattern, prompt, re.IGNORECASE
-            )  # re.IGNORECASE makes the search case-insensitive
-            if match:
-                query_raw = match.group(1)
-                break
-        if query_raw != "":
-            pattern = r"([\"'])(.*?)\1"
-            query = re.search(pattern, query_raw)
-            if query is not None:
-                rs = query.group(2)
-        return rs
+        return ""
+        # disabled to security concerns
+        # rs = ""
+        # query_raw = ""
+        # for qry in self.FILE_QUERY_PROMPTS:
+        #     pattern = rf"{qry}(.*)"
+        #     match = re.search(
+        #         pattern, prompt, re.IGNORECASE
+        #     )  # re.IGNORECASE makes the search case-insensitive
+        #     if match:
+        #         query_raw = match.group(1)
+        #         break
+        # if query_raw != "":
+        #     pattern = r"([\"'])(.*?)\1"
+        #     query = re.search(pattern, query_raw)
+        #     if query is not None:
+        #         rs = query.group(2)
+        # return rs
 
     def get_page(self, url, prompt):
         """

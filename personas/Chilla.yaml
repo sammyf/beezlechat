@@ -6,3 +6,4 @@ speaker: "p313"
 model: "dolphin-mixtral"
 max_answer_token: 512
 tag: "latest"
+parameters: "free_spirit"

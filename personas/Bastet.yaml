@@ -6,4 +6,5 @@ voice: "tts_models/en/vctk/vits"
 speaker: "p225"
 parameters: "free_spirit"
 max_answer_token: 512
+disable_w2l: true
 

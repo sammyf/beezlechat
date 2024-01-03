@@ -5,3 +5,4 @@ voice: "tts_models/en/vctk/vits"
 speaker: "p259"
 model: "TheBloke_Chronos-Beluga-v2-13B-GPTQ"
 max_answer_token: 1000
+parameters: "free_spirit"

@@ -6,3 +6,4 @@ bot: '<AI>:
 '
 mode: 'raw'
 loader: 'tabby'
+stop: '<system>:, <user>:'
