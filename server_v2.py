@@ -979,7 +979,7 @@ def personas_table(client=None):
         p=p_raw.replace(".yaml","").replace("./personas/","")
         pdiv=tpl.replace("{path}",f"{requrl}/get_face/{p}").replace("{name}",p).replace("{model}",m)
         rs += pdiv
-        generate_tts("Those are the personas currently available, along with their respective L L M.")
+    generate_tts("Those are the personas currently available, along with their respective L L M.")
     return generate_chat_lines("who can I talk to?", rs)
 
 def amnesia(client = None):
