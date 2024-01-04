@@ -226,11 +226,15 @@ div.bot_margin{
 }
 
 #persona {
-    width:75px;
+    width:200px;
     font-weight: normal;
     background-color: rgba(96,138,125,0.5);
     color: #ffffff;
     border: 0px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 2px;
+    padding-bottom: 1px;
 }
 
 #models {
@@ -240,6 +244,10 @@ div.bot_margin{
     color: #ffffff;
     border: 0px;
     font-size: x-small;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-top: 2px;
+    padding-bottom: 1px;
 }
 
 option.ollama {

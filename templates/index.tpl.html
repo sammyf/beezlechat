@@ -44,7 +44,8 @@
 <div id="charlist">
     <form id="charform">
         <img class="refresh" id="refresh_personas" src="/imgs/refresh.png" hx-post="{request_url}/list_personas" hx-trigger="click"  hx-swap="innerHTML" hx-target="#persona" hx-indicator="#spinner">
-        <select id="persona" name="persona" size="auto" hx-timeout="270000' hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>
+<!--        <select id="persona" name="persona" size="auto" hx-timeout="270000' hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>-->
+        <span id="persona"></span>
     </form>
 </div>
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
