@@ -3,7 +3,6 @@ import os.path
 import string
 import requests
 import json
-
 import yaml
 from bs4 import BeautifulSoup
 from summarizer import Summarizer
@@ -11,6 +10,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import re
 from PyPDF2 import PdfReader
+
 
 class SearXing:
     CONFIG_FILE = "searxing_config.yaml"
@@ -288,6 +288,7 @@ class SearXing:
             if rs != self.trim_to_x_words(rs, self.config["max_text_length"]):
                 break
         return rs
+
 
     def open_file(self, fname):
         """

@@ -16,16 +16,21 @@
 </div>
 <div id="fade">
 </div>
-
+<div id="audioctrl">
+    <audio src="" controls autoplay id="tts"></audio><br>
+<!--    <input type="button" id="toggle_tts" name="toggle_tts" value="{tts_onoff}" hx-trigger="click" hx-post="{request_url}/toggle_tts" hx-indicator="#spinner" >-->
+<!--    <label for="toggle_tts"></label>-->
+</div>
+<div id="avsettings"  class="av" >
+        <input type="radio" name="av" id="toggle_noav" {select_noav} value="noav" hx-get="{request_url}set_av/noav" hx-trigger="change"> No A/V&nbsp;
+        <input type="radio" name="av" id="toggle_tts" {select_tts} value="tts" hx-get="{request_url}set_av/tts" hx-trigger="change"> TTS&nbsp;
+        <input type="radio" name="av" id="toggle_w2l" {select_w2l} value="w2l" hx-get="{request_url}set_av/w2l" hx-trigger="change"> Animated&nbsp;
+</div>
 <div id="container">
     <div id="messages">{request_url}</div>
     <div id="spacer">&nbsp;</div>
 </div>
-<div id="audioctrl">
-    <audio src="" controls autoplay id="tts"></audio><br>
-    <input type="button" id="toggle_tts" name="toggle_tts" value="{tts_onoff}" hx-trigger="click" hx-post="{request_url}/toggle_tts" hx-indicator="#spinner" >
-    <label for="toggle_tts"></label>
-</div>
+
 
 <!--<div id="extras">-->
 <!--    <input type="button" id="toggle_extras" name="toggle_extras" value="{selected_extras}" hx-trigger="click" hx-post="{request_url}/toggle_extras" hx-indicator="#spinner" >-->
@@ -167,33 +172,43 @@
     })
 
     document.addEventListener('htmx:afterRequest', function(evt) {
-        console.log(evt.detail.elt.id)
-        if( evt.detail.elt.id == "toggle_tts") {
-            toggle_tts ^= true;
-            label_ttsbtn()
+        console.log('evt id:',evt.detail.elt.id)
+        if( evt.detail.elt.id == "toggle_w2l") {
+            extra_option=2;
+            set_av()
+        } else if( evt.detail.elt.id == "toggle_tts") {
+            extra_option=1;
+            set_av()
+        } else if( evt.detail.elt.id == "toggle_noav") {
+            extra_option=0;
+            set_av()
         }
     })
 
     window.onload =  function() {
         document.getElementById("refresh_personas").click();
-        label_ttsbtn();
+        set_av()
+        /* AUDIO RECORDING */
+    }
+
+    function set_av() {
+        console.log("extra option", extra_option )
         switch( extra_option) {
             case 2:
                 document.getElementById("audioctrl").style.visibility='hidden';
+                document.getElementById("videoctrl").style.visibility='visible'
                 idlevid.src = "{request_url}/idle/rnd="+Math.random().toString();
                 w2l.style.display = 'none';
                 break;
             case 1:
+                document.getElementById("audioctrl").style.visibility='visible';
                 document.getElementById("videoctrl").style.visibility='hidden';
                 break;
             case 0:
                 document.getElementById("audioctrl").style.visibility='hidden';
                 document.getElementById("videoctrl").style.visibility='hidden';
         }
-
-        /* AUDIO RECORDING */
     }
-
 
     // WHISPER SPECIFIC CODE
 

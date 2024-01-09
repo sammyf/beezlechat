@@ -166,6 +166,7 @@ div.bot_margin{
     left:10px;
     background-color: rgba(96,138,125,0.5);
     text-align: center;
+    z-index: 1000;
 }
 #videocontainer {
     position: fixed;
@@ -179,8 +180,8 @@ div.bot_margin{
 
 #videoctrl {
     top:5px;
-    width: 256px;
-    height: 256px;
+    width: 150px;
+    height: 150px;
     margin-left: auto;
     margin-right: auto;
     background-color: rgba(96,138,125,0.5);
@@ -189,7 +190,7 @@ div.bot_margin{
     border-radius: 15px;
 }
 
-#toggle_tts {
+#toggle_tts_old {
     background-color: #608a7d;
     color: #ffffff;
     max-width:50px;
@@ -311,7 +312,7 @@ div.prsna {
     float: right;
     margin-right: 5px;
     margin-bottom: 2px;
-    padding 3px;
+    padding: 3px;
     border: 1px #0b0f19;
     background-color: #0B0F19;
     border-radius: 15px;
@@ -333,4 +334,27 @@ span.prsn_name {
 }
 span.prsn_model {
     font-size: x-small;
+}
+
+#w2l {
+    width:150px;
+    height:150px;
+}
+
+#idlevid {
+    width:150px;
+    height:150px;
+}
+
+#avsettings {
+    position: absolute;
+    top: 80px;
+    left: 5px;
+    z-index: 1000;
+    background-color: #10002f;
+}
+
+.av {
+    font-size: xx-small;
+    text-align: left;
 }

@@ -6,6 +6,7 @@ import subprocess
 import sys, os
 
 import ffmpeg
+from langchain_community.llms.ollama import Ollama
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
@@ -17,6 +18,7 @@ import moztts
 import re
 import markdown
 from searxing import SearXing
+from ollama_langchain import OllamaLangchain
 import sys
 import datetime
 import signal
@@ -640,7 +642,7 @@ def run_w2l_api( target):
         return
     rs={
         "checkpoint_path": "checkpoints/wav2lip.pth",
-        "face": f"/media/GINTONIC/AIArtists/Wav2Lip/targets/{target}_talk.mp4",
+        "face": f"/media/GINTONIC/AIArtists/Wav2Lip/targets/{target}_talk_long.mp4",
         "audio": "/media/GINTONIC/AIArtists/beezlechat/audio/tts.wav",
         "outfile": "/media/GINTONIC/AIArtists/beezlechat/video/result.mp4"
     }
@@ -735,6 +737,39 @@ def generate(prompt, client, raw=False):
         prompt = prmtr
 
     original_prompt = prompt
+
+    if model_config['loader'] == 'ollama' and prompt.startswith("(langchain)"):
+        olc = OllamaLangchain()
+        fn = Searxing.extract_file_name(prompt)
+        url = Searxing.extract_url(prompt)
+        q = Searxing.extract_query(prompt)
+        vector = None
+        do_langchain = True
+        if url != "":
+            vector = olc.open_url(url=url, ollama_server=oai_config['ollama_server'],model_tag=f"{persona_config['model']}:{persona_config['tag']}")
+        elif fn != "":
+            vector = olc.open_pdf(path=fn, ollama_server=oai_config['ollama_server'],model_tag=f"{persona_config['model']}:{persona_config['tag']}")
+        elif q != "":
+            url = f"{Searxing.config['searx_server']}?q={q}&format=json"
+            vector = olc.open_url(url=url, ollama_server=oai_config['ollama_server'],
+                              model_tag=f"{persona_config['model']}:{persona_config['tag']}")
+        else:
+            do_langchain = False
+        if do_langchain:
+            ctx = ""
+            # if (redo_persona_context):
+            #     ctx = persona_config['context']
+            #     if system_config['do_greeting']:
+            #         ctx = persona_config['greeting'] + ctx
+            rs_raw = olc.query(vectorstore=vector,prompt=ctx+"\n"+prompt, ollama_server=oai_config['ollama_server'],model_tag=f"{persona_config['model']}:{persona_config['tag']}")
+            print("\n\n___________________\n",rs_raw,"\n___________________\n\n")
+            rs = rs_raw["result"]
+
+            generate_tts(rs)
+            historyMP[client].append(["u", prompt])
+            historyMP[client].append(["b", rs])
+            return generate_chat_lines(prompt, htmlize(rs))
+
     searxPrompt = Searxing.check_for_trigger(prompt, model_config['max_seq_len']/2, count_tokens)
     if searxPrompt == '':
         searxPrompt = prompt
@@ -1029,14 +1064,37 @@ def get_index():
     index=index.replace("{tts_toggle_state}", tts_onoff)
     index=index.replace("{autonomy}", autonomy)
     extras = 0
-    if system_config['do_wav2lip']:
+    print(system_config)
+    if system_config['do_wav2lip'] == True:
         extras = 2
-    elif system_config['do_tts']:
+        index = index.replace("{select_w2l}", 'checked')
+    elif system_config['do_tts'] == True:
+        index = index.replace("{select_tts}", 'checked')
         extras = 1
+    else:
+        index = index.replace("{select_noav}", 'checked')
+
+    index = index.replace("{select_noav}", '')
+    index = index.replace("{select_w2l}", '')
+    index = index.replace("{select_tts}", '')
 
     index=index.replace("{extra_option}",str(extras))
     return index
     #send_file("index.html", mimetype='text/html')
+
+@app.route('/set_av/<option>', methods=['GET'])
+def set_av_action(option):
+    if option == "noav":
+        system_config['do_tts'] = False
+        system_config['do_wav2lip'] = False
+    elif option == "w2l":
+        system_config['do_tts'] = True
+        system_config['do_wav2lip'] = True
+    elif option == "tts":
+        system_config['do_tts'] = True
+        system_config['do_wav2lip'] = False
+    write_system_config()
+    return "ok"
 
 @app.route('/set_username/', methods=['GET'])
 def set_username_action():
