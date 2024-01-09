@@ -1,0 +1,10 @@
+max_seq_len: 4096
+alpha_value: 1
+user: '### User: 
+%%prompt%%
+'
+bot: '### Assistant: 
+'
+mode: 'raw'
+loader: 'ollama'
+stop: '### User:'

@@ -1,0 +1,9 @@
+max_seq_len: 4096
+tag: 'latest'
+user: '### User:
+%%prompt%%'
+bot : '### Assistant:'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: '### User:,<s>'
