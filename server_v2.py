@@ -4,6 +4,7 @@ import random
 import shutil
 import subprocess
 import sys, os
+from urllib.parse import quote
 
 import ffmpeg
 from langchain_community.llms.ollama import Ollama
@@ -341,11 +342,11 @@ def generate_chat_lines(user, bot, img_name=None):
     """
     ## moving the animation to the top of the screen and keeping the portrait
     ## in the chatlines
-    # if img_name is not None:
-    #     with open('templates/upload.tpl.html', "r") as f:
-    #         uploadTpl = f.read()
-    #     user = (uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\","")).
-    #             replace("%%user%%", user))
+    if img_name is not None:
+        with open('templates/upload.tpl.html', "r") as f:
+            uploadTpl = f.read()
+        user = (uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\","")).
+                replace("%%user%%", user))
 
     rs = (chat_line.replace("%%user%%", user)\
         .replace("%%bot%%", bot)\
@@ -541,15 +542,22 @@ def configure(persona):
         cache, parameters, model_config, mozTTS, system_config, pf, redo_persona_context, \
         redo_greetings, persona_dbid, loaded_model
 
-    if initialized:
-        old_persona = persona_config["name"]
-    else:
-        old_persona = "sleeping"
     try:
          with open(f'./personas/{persona}.yaml') as f:
             persona_config = yaml.safe_load(f)
     except:
-         return
+         if not initialized:
+             with open(f'./personas/{system_config["fallback"]}.yaml') as f:
+                 persona_config = yaml.safe_load(f)
+         else:
+            generate_tts("Sorry. There is no persona with that name.")
+            return generate_chat_lines(f"I summon {persona}.","Sorry. There is no persona with that name.")
+
+    if initialized:
+        old_persona = persona_config["name"]
+    else:
+        old_persona = "sleeping"
+
 
     system_config['persona'] = persona
     write_system_config()
@@ -697,19 +705,30 @@ def check_meta_cmds(prompt, client):
         'personas'
     ]
     clean_prompt = prompt.lower().strip()
-    print("\n\nClean Prompt :",clean_prompt,"\n\n")
+    print("\n\nClean Prompt :", clean_prompt, "\n\n")
     if clean_prompt == ("forget everything"):
         return (amnesia, client)
     if clean_prompt in display_personas:
         print("display_pesonas")
         return (personas_table, client )
-    if clean_prompt.startswith("check the news"):
+    if clean_prompt.startswith("check the news."):
         source = random.choice(news_sources)
         print(f"\nNews Source selected : {source}\n")
         return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
-
+    if "ask wikipedia about " in clean_prompt:
+        pattern = ".*ask wikipedia about [\'\"]([ a-zA-Z0-9_\-\']+)[\'\"].*"
+        matches = re.match(pattern, clean_prompt)
+        if matches is not None:
+            query =  matches.group(1)
+            return (None, Searxing.ask_wikipedia_search(query))
+        else:
+            pattern = ".*ask wikipedia about ([a-zA-Z0-9_\-\']+)[^\w]*"
+            matches = re.match(pattern, clean_prompt)
+            if matches is not None:
+                query =  matches.group(1)
+                return (None, Searxing.ask_wikipedia_search(query))
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
-    matches = re.match(pattern, prompt)
+    matches = re.match(pattern, clean_prompt)
     if matches is not None and len(matches.groups()) > 0:
         return (configure, matches.group(1).lower().capitalize())
     pattern = ".*my name is ([a-zA-Z_0-9]+).*"

@@ -186,8 +186,10 @@
     })
 
     window.onload =  function() {
-        document.getElementById("refresh_personas").click();
         set_av()
+        document.getElementById("w2l").pause()
+        document.getElementById("tts").pause()
+        document.getElementById("refresh_personas").click();
         /* AUDIO RECORDING */
     }
 
@@ -199,14 +201,18 @@
                 document.getElementById("videoctrl").style.visibility='visible'
                 idlevid.src = "{request_url}/idle/rnd="+Math.random().toString();
                 w2l.style.display = 'none';
+                document.getElementById("tts").pause()
                 break;
             case 1:
                 document.getElementById("audioctrl").style.visibility='visible';
                 document.getElementById("videoctrl").style.visibility='hidden';
+                document.getElementById("w2l").pause()
                 break;
             case 0:
                 document.getElementById("audioctrl").style.visibility='hidden';
                 document.getElementById("videoctrl").style.visibility='hidden';
+                document.getElementById("w2l").pause()
+                document.getElementById("tts").pause()
         }
     }
 

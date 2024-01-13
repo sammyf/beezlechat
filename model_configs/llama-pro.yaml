@@ -1,0 +1,12 @@
+max_seq_len: 4096
+tag: '8b-instruct-q5_K_M'
+system: '<|system|>
+%%prompt%%'
+user: '<|user|>
+%%prompt%%'
+bot : '<|assistant|>
+'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: '<|system|>,<|user|>,<|assistant|>'

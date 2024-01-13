@@ -58,6 +58,48 @@ class SearXing:
         with open(self.CONFIG_FILE) as f:
             self.config = yaml.safe_load(f)
 
+    def ask_wikipedia_search(self, query):
+        url = f"\nhttps://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit=1&namespace=0&format=json"
+        try:
+            response = requests.get(url)
+        except:
+            return (
+                "An internet search returned no results as the Wikipedia server did not answer."
+            )
+        # Load the response data into a JSON object.
+        try:
+            data = json.loads(response.text)
+        except:
+            return "An internet search returned no results as the Wikipedia server doesn't seem to output json."
+        # Initialize variables for the extracted texts and count of results.
+        texts = ""
+        count = 0
+        max_results = self.config["max_search_results"]
+        rs = "An internet search returned these results:"
+        result_max_characters = self.config["max_text_length"]
+        # If there are items in the data, proceed with parsing the result.
+        if "query" in data and "search" in data["query"]:
+            # For each result, fetch the webpage content, parse it, summarize it, and append it to the string.
+            for result in data["query"]["search"]:
+                # Check if the number of processed results is less than or equal to the maximum number of results allowed.
+                if count <= max_results:
+                    # Get the URL of the result.
+                    # we won't use it right now, as it would be too much for the context size we have at hand
+                    link = f"https://en.wikipedia.org/wiki/{result['title'].replace(' ', '_')}"
+                    # Fetch the webpage content of the result.
+                    content = result["snippet"]
+                    if len(content) > 0:  # ensure content is not empty
+                        # Append the summary to the previously extracted texts.
+                        texts = texts + " " + content + "\n"
+                        # Increase the count of processed results.
+                        count += 1
+            # Add the first 'result_max_acters' characters of the extracted texts to the input string.
+            rs += texts[:result_max_characters]
+        # Return the modified string.
+        return rs
+
+
+
     def call_searx_api(self, query):
         """
         :param query: The query string to search for in the SEARX server.
