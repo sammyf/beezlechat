@@ -69,7 +69,7 @@
 </div>
 <script type="application/javascript">
 
-    let extra_option={extra_option}
+    let extra_option={extra_option};
     let toggle_tts={tts_toggle_state};
     let toggle_autonomy= {autonomy};
 
@@ -90,10 +90,12 @@
     }
 
     // autonomy routine
-    const minSeconds = 120;
+    const minSeconds = 200;
     const maxSeconds = 270;
     let timer = undefined
     let randomSeconds = 0
+    let lastDelay = 0
+    let afktime = 0
 
     function label_ttsbtn() {
         if( toggle_tts) {
@@ -106,8 +108,10 @@
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+
     function autonomy() {
-        document.getElementById("prompt").value = "[System Message:The user is still Away From Keyboard and has already been so for " + randomSeconds.toString() + " seconds]."
+        afktime += lastDelay
+        document.getElementById("prompt").value = "[System Message:this is a Keep Alive Ping. The user is Away From Keyboard and has already been so for " + afktime.toString() + " seconds]."
         document.getElementById("sendbutton").click()
         if (toggle_autonomy) {
             autonomyTimer()
@@ -117,6 +121,7 @@
     function autonomyTimer() {
         clearTimeout(timer);
         randomSeconds = getRandomInt(minSeconds, maxSeconds);
+        lastDelay = randomSeconds
         timer = setTimeout(() => {
             autonomy();
         }, randomSeconds * 1000);
@@ -134,6 +139,7 @@
 
     // standard prompt routine
     document.getElementById("prompt").addEventListener('keyup', (event) => {
+        // check for shift+enter
         if ((event.key === "Enter")  && (!event.shiftKey)){
             event.preventDefault();
         }
@@ -167,6 +173,8 @@
         document.getElementById("messages").scrollTo(0, document.getElementById("messages").scrollHeight);
         document.getElementById("prompt").focus()
         if(toggle_autonomy) {
+            // reset afk time and autonomyTimer
+            afktime = 0
             autonomyTimer()
         }
     })

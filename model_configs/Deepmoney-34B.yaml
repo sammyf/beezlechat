@@ -1,0 +1,8 @@
+max_seq_len: 8192
+alpha_value: 1
+user: '%%prompt%%
+'
+bot: ''
+mode: 'raw'
+loader: 'ollama'
+stop: '<s>,</s>'

@@ -683,6 +683,14 @@ def generate_tts(string):
             run_w2l_api(persona_config['name'])
     return output_file
 
+def generate_image(prompt, client):
+    clean_prompt = prompt[21:]
+    sdprompt = generate(f"write a stable diffusion prompt to generate {clean_prompt}", client, True)
+    with open("invoke/T2I-SD1.5.json", "r") as f:
+        invokePrompt = f.read().replace("%%PROMPT%%", sdprompt)
+    rs_raw  = requests.post('http://localhost:9090/api/v1/', data=json.dumps(invokePrompt, indent=4))
+    rs = json.loads(rs_raw)
+    
 def check_meta_cmds(prompt, client):
     """
     Check if prompt matches any meta commands and return a corresponding action.
@@ -715,6 +723,8 @@ def check_meta_cmds(prompt, client):
         source = random.choice(news_sources)
         print(f"\nNews Source selected : {source}\n")
         return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
+    if clean_prompt.startswith("generate an image of "):
+        return (generate_image, None)
     if "ask wikipedia about " in clean_prompt:
         pattern = ".*ask wikipedia about [\'\"]([ a-zA-Z0-9_\-\']+)[\'\"].*"
         matches = re.match(pattern, clean_prompt)
