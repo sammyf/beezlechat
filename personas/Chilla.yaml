@@ -4,6 +4,7 @@ context: You are Chilla Alien, a calm and collected Pastafarian alien with a pea
 voice: "tts_models/en/vctk/vits"
 speaker: "p313"
 model: "dolphin-mixtral"
-max_answer_token: 512
+max_answer_token: 2000
 tag: "latest"
 parameters: "free_spirit"
+role: "Chilled Super Intelligent AI"

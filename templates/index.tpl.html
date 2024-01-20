@@ -27,31 +27,19 @@
         <input type="radio" name="av" id="toggle_w2l" {select_w2l} value="w2l" hx-get="{request_url}set_av/w2l" hx-trigger="change"> Animated&nbsp;
 </div>
 <div id="container">
-    <div id="messages">{request_url}</div>
+    <div id="messages">Chat starts here...</div>
     <div id="spacer">&nbsp;</div>
 </div>
 
-
-<!--<div id="extras">-->
-<!--    <input type="button" id="toggle_extras" name="toggle_extras" value="{selected_extras}" hx-trigger="click" hx-post="{request_url}/toggle_extras" hx-indicator="#spinner" >-->
-<!--</div>-->
-
-<!--<div id="modellist">-->
-<!--    <form id="modelform">-->
-<!--        <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">-->
-<!--        <select id="models" name="models" size="auto" hx-timeout="270000' hx-post="{request_url}/load_model" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>-->
-<!--    </form>-->
-<!--</div>-->
 <div id="modellist">
         <img class="refresh" id="refresh_models" src="/imgs/refresh.png" hx-post="{request_url}/list_models" hx-trigger="click"  hx-swap="innerHTML" hx-target="#models" hx-indicator="#spinner">
         <span id="models"></span>
 </div>
-<div id="charlist">
-    <form id="charform">
-        <img class="refresh" id="refresh_personas" src="/imgs/refresh.png" hx-post="{request_url}/list_personas" hx-trigger="click"  hx-swap="innerHTML" hx-target="#persona" hx-indicator="#spinner">
-<!--        <select id="persona" name="persona" size="auto" hx-timeout="270000' hx-post="{request_url}/configure" hx-trigger="change" hx-swap="beforeend" hx-target="#messages" hx-indicator="#spinner" ></select>-->
-        <span id="persona"></span>
-    </form>
+
+<div id="keepalive">
+    KeepAlive:&nbsp;
+    <input id="keepalive_from" class="keepalive" type="text" value="200">
+    <input id="keepalive_to" class="keepalive" type="text" value="290">
 </div>
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
 <div id="input_container">
@@ -90,8 +78,6 @@
     }
 
     // autonomy routine
-    const minSeconds = 200;
-    const maxSeconds = 270;
     let timer = undefined
     let randomSeconds = 0
     let lastDelay = 0
@@ -111,7 +97,8 @@
 
     function autonomy() {
         afktime += lastDelay
-        document.getElementById("prompt").value = "[System Message:this is a Keep Alive Ping. The user is Away From Keyboard and has already been so for " + afktime.toString() + " seconds]."
+        document.getElementById("prompt").value = "[System Message:this is a Keep Alive Ping. The user is AFK." +
+            "Write a creative story involving the topic of this random wikipedia page https://en.wikipedia.org/wiki/Special:Random "
         document.getElementById("sendbutton").click()
         if (toggle_autonomy) {
             autonomyTimer()
@@ -120,6 +107,9 @@
 
     function autonomyTimer() {
         clearTimeout(timer);
+        let minSeconds = document.getElementById("keepalive_from").value
+        let maxSeconds = document.getElementById("keepalive_to").value
+        if(minSeconds == "0") return;
         randomSeconds = getRandomInt(minSeconds, maxSeconds);
         lastDelay = randomSeconds
         timer = setTimeout(() => {
@@ -155,6 +145,7 @@
 
     document.body.addEventListener('htmx:afterSwap', function(evt) {
         if(evt.target.id != "models") {
+            console.log("refreshing models")
             document.getElementById("refresh_models").click()
         }
         document.getElementById("prompt").value=""
@@ -197,7 +188,7 @@
         set_av()
         document.getElementById("w2l").pause()
         document.getElementById("tts").pause()
-        document.getElementById("refresh_personas").click();
+        document.getElementById("refresh_models").click();
         /* AUDIO RECORDING */
     }
 

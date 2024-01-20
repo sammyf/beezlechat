@@ -1,0 +1,12 @@
+max_seq_len: 8192
+tag: 'latest'
+system: 'System:
+'
+user: 'User:
+'
+bot : 'Assistant:
+'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: '<s>,User:,System:,<0x0A>'

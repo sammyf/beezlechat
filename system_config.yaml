@@ -1,12 +1,12 @@
 autonomy: true
 do_greeting: true
 do_tts: true
-do_wav2lip: false
+do_wav2lip: true
 fallback: Beezle
 host: 0.0.0.0
 log: true
 multimodal: bakllava
-persona: Alva
+persona: Kali
 port: 9706
 username: Sammy
 w2l_clip: null

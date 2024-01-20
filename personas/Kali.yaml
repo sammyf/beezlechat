@@ -5,5 +5,6 @@ model: 'Velara'
 voice: "tts_models/en/vctk/vits"
 speaker: "p247"
 parameters: "free_spirit"
-max_answer_token: 750
+max_answer_token: 2000
 tag: 'latest'
+role: "Uninhibited Hacker"

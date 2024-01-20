@@ -163,7 +163,7 @@ div.bot_margin{
 
 #audioctrl {
     position: fixed;
-    top:10px;
+    top:30px;
     left:10px;
     background-color: rgba(96,138,125,0.5);
     text-align: center;
@@ -176,7 +176,7 @@ div.bot_margin{
     width:100%;
     height:300px;
     text-align: center;
-    z-index: 1000;
+    z-index: 700;
 }
 
 #videoctrl {
@@ -213,10 +213,16 @@ div.bot_margin{
 
 #modellist {
     position: fixed;
-    top:40px;
+    top:10px;
     right:10px;
-    background-color: rgba(138, 96, 115, 0.5);
+    min-width:100px;
+    background-color: rgba(96, 138, 135, 0.5);
     z-index: 200;
+    text-align: center;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 3px;
+    padding-right: 3px;
 }
 
 #charlist {
@@ -227,29 +233,58 @@ div.bot_margin{
     z-index: 200;
 }
 
-#persona {
-    width:200px;
+#persona_name {
+    width:100%;
+    font-weight: bold;
+    text-align: center;
+    color: #dadada;
+    font-size: medium;
+}
+#model_name {
+    width:100%;
     font-weight: normal;
-    background-color: rgba(96,138,125,0.5);
-    color: #ffffff;
-    border: 0px;
-    padding-left: 3px;
-    padding-right: 3px;
-    padding-top: 2px;
-    padding-bottom: 1px;
+    text-align: center;
+    color: #dadada;
+    font-size: x-small;
+    margin-top: -3px;
 }
 
 #models {
-    width:200px;
+    width: 200px;
     font-weight: normal;
-    background-color: rgba(121, 96, 138, 0.5);
-    color: #ffffff;
     border: 0px;
     font-size: x-small;
     padding-left: 3px;
     padding-right: 3px;
     padding-top: 2px;
     padding-bottom: 1px;
+    text-align: center;
+}
+
+#keepalive_from {
+    width:50px;
+    font-weight: normal;
+    background-color: rgba(138, 96, 115, 0.5);
+    color: #ffffff;
+    border: 0px;
+    font-size: x-small;
+    z-index: 800;
+}
+#keepalive_to {
+    width:30px;
+    font-weight: normal;
+    background-color: rgba(138, 96, 115, 0.5);
+    color: #ffffff;
+    border: 0px;
+    font-size: x-small;
+}
+
+#keepalive {
+    position: fixed;
+    top:52px;
+    right:10px;
+    z-index: 900;
+    font-size: x-small;
 }
 
 option.ollama {
@@ -272,6 +307,7 @@ option.tabby {
 img.refresh {
     height:25px;
     vertical-align: top;
+    display: none;
 }
 #msg_container {
     position: absolute;
@@ -333,6 +369,10 @@ span.prsn_name {
     font-weight: bold;
     font-size: small;
 }
+span.prsn_role {
+    font-size: small;
+    font-style: italic;
+}
 span.prsn_model {
     font-size: x-small;
 }
@@ -349,7 +389,7 @@ span.prsn_model {
 
 #avsettings {
     position: absolute;
-    top: 80px;
+    top: 10px;
     left: 5px;
     z-index: 1000;
     background-color: #10002f;

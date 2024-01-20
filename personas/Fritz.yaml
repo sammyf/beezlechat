@@ -6,5 +6,6 @@ voice: "tts_models/de/thorsten/vits"
 speaker: ""
 language: ""
 parameters: "free_spirit"
-max_answer_token: 512
+max_answer_token: 2000
 tag: "latest"
+role: "German Analyst"

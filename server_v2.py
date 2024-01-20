@@ -213,6 +213,10 @@ def ollama_generate(original_prompt, client):
         "Content-Type": "application/json",
     }
 
+    # print( "\n:::::::::\n")
+    # print(json.dumps(rs, indent=4))
+    # print( "\n:::::::::\n")
+
     # response = requests.post(url, data=json.dumps(rs, indent=0))
     rs_stream = requests.post(url, data=json.dumps(rs, indent=0), stream=True)
     response = ""
@@ -707,10 +711,7 @@ def check_meta_cmds(prompt, client):
     'https://www.tageschau.de'
     ]
     display_personas = [
-        'who can i talk to?',
-        'show me the personas',
-        'who is available?',
-        'personas'
+        'who can i talk to?'
     ]
     clean_prompt = prompt.lower().strip()
     print("\n\nClean Prompt :", clean_prompt, "\n\n")
@@ -943,51 +944,15 @@ def list_models():
     return rs
 
 def list_model():
-    global model_config,loaded_model
-    models_bin = glob.glob("./models/*")
-    models_config_raw = glob.glob("./model_configs/*.yaml")
-    models_config = []
-    models = []
-    print('\nconfigs available:')
-    for p_raw in models_config_raw:
-        p = p_raw.replace(".yaml", "").replace("./model_configs/", "")
-        models_config.append(p)
+    global model_config,loaded_model,persona_config
+    loader = '(?)'
+    if model_config['loader'] == 'tabby':
+        loader = '(t)'
+    elif model_config['loader'] == "ollama":
+        loader = '(o)'
 
-    print('\nmodels available:')
-    for b_raw in models_bin:
-        b = b_raw.replace("./models/", "")
-        if b in models_config:
-            models.append(f"./model_configs/{b}.yaml")
-        else:
-            print(f"\n{b} (tabby) doesn't have a valid config")
-
-    # get the ollama models
-    url = f"{oai_config['ollama_server']}/api/tags"
-    response = requests.get(url)
-    rsjson = json.loads(response.text)
-    for model in rsjson['models']:
-        p_raw = model['name']
-        p = p_raw[0:p_raw.find(':')]
-        if p in models_config:
-            models.append(f"./model_configs/{p}.yaml")
-        else:
-            print(f"\n{p} (ollama) doesn't have a valid config")
-
-    models.sort()
-    rs = ""
-    for p_raw in models:
-        with open(p_raw) as f:
-            tmp=yaml.safe_load(f)
-            ldr = tmp['loader']
-
-        loader = ldr[0].upper()
-        p=p_raw.replace(".yaml","").replace("./model_configs/","")
-        selected=""
-        if p == loaded_model:
-            selected = "selected"
-            output = f'({loader}) {p}'
-        rs +=f"<option value='{p}' {selected} class='tabby'>({loader}) {p}</option>"
-    return output
+    output = f"{loader} {persona_config['model']}"
+    return f"<span id='persona_name'>{persona_config['name']}</span><br/><span id='model_name'>{output}</span>"
 
 def set_username(uname, client):
     """
@@ -1041,7 +1006,7 @@ def personas_table(client=None):
         else:
             m = f"(t) {prsna['model']}"
         p=p_raw.replace(".yaml","").replace("./personas/","")
-        pdiv=tpl.replace("{path}",f"{requrl}/get_face/{p}").replace("{name}",p).replace("{model}",m)
+        pdiv=tpl.replace("{path}",f"{requrl}/get_face/{p}").replace("{name}",p).replace("{model}",m).replace("{role}",prsna['role'])
         rs += pdiv
     generate_tts("Those are the personas currently available, along with their respective L L M.")
     return generate_chat_lines("who can I talk to?", rs)

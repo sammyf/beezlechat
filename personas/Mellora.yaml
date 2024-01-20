@@ -6,6 +6,6 @@ model: "beyonder"
 voice: "tts_models/en/vctk/vits"
 speaker: "p271"
 parameters: "free_spirit"
-max_answer_token: 500
+max_answer_token: 2000
 tag: "latest"
-
+role: "Super Intelligent AI"

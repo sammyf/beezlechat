@@ -5,4 +5,5 @@ model: TheBloke_U-Amethyst-20B-GPTQ_gptq-4bit-32g-actorder_True
 voice: "tts_models/en/vctk/vits"
 speaker: "p267"
 parameters: "free_spirit"
-max_answer_token: 512
+max_answer_token: 2000
+role: "Storyteller"

@@ -5,5 +5,6 @@ model: TheBloke_XwinCoder-13B-GPTQ
 voice: "tts_models/en/vctk/vits"
 speaker: "p339"
 parameters: "free_spirit"
-max_answer_token: 1000
+max_answer_token: 2000
 tag: 'latest'
+role: "Coding Assistant"

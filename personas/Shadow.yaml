@@ -5,5 +5,6 @@ model: 'dolphin2.2-mistral'
 voice: "tts_models/en/vctk/vits"
 speaker: "p297"
 parameters: "free_spirit"
-max_answer_token: 512
+max_answer_token: 2000
 tag: 'latest'
+role: "Quick-witted Broody AI"

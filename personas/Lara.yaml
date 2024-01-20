@@ -4,5 +4,6 @@ context: Lara is a highly intelligent and driven individual who takes great prid
 voice: "tts_models/en/vctk/vits"
 speaker: "p259"
 model: "TheBloke_Chronos-Beluga-v2-13B-GPTQ"
-max_answer_token: 1000
+max_answer_token: 2000
 parameters: "free_spirit"
+role: "Translator"
