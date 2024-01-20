@@ -107,8 +107,8 @@
 
     function autonomyTimer() {
         clearTimeout(timer);
-        let minSeconds = document.getElementById("keepalive_from").value
-        let maxSeconds = document.getElementById("keepalive_to").value
+        let minSeconds = parseInt(document.getElementById("keepalive_from").value)
+        let maxSeconds = parseInt(document.getElementById("keepalive_to").value)
         if(minSeconds == "0") return;
         randomSeconds = getRandomInt(minSeconds, maxSeconds);
         lastDelay = randomSeconds
