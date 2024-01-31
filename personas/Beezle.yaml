@@ -9,3 +9,7 @@ max_answer_token: 2000
 tag: "latest"
 disable_w2l: true
 role: "Snarky AI"
+generate_img: true
+look_at_gen: true
+checkpoint: '526mixV15_v14.safetensors'
+image_size: 512

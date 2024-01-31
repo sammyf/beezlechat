@@ -7,3 +7,7 @@ speaker: "p267"
 parameters: "free_spirit"
 max_answer_token: 2000
 role: "Storyteller"
+generate_img: true
+look_at_gen: false
+checkpoint: 'absolutereality_v1.safetensors'
+image_size: 512

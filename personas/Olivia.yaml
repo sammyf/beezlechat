@@ -12,4 +12,7 @@ parameters: "free_spirit"
 max_answer_token: 2000
 tag: 'latest'
 role: "Quick-witted AI"
-
+generate_img: true
+look_at_gen: true
+checkpoint: 'protogenNovaExperimental_protogenNova.safetensors'
+image_size: 512

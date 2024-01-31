@@ -311,7 +311,7 @@ img.refresh {
 }
 #msg_container {
     position: absolute;
-    width:600px;
+    width:95%;
     bottom: 60px;
     margin-right: auto;
     margin-left: auto;
@@ -330,8 +330,8 @@ input.option.selected {
 }
 
 .uploaded_img {
-    width: 300px;
-    height: auto;
+    width: auto;
+    height:512px;
     border: 1px #0b0f19;
     margin: 5px 5px 5px 5px
 }
@@ -340,7 +340,12 @@ input.option.selected {
     text-align: center;
 }
 .upload_table {
-    width: 400px;
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.genimg_table {
+    width: 90%;
     margin-left: auto;
     margin-right: auto;
 }

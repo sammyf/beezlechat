@@ -9,3 +9,7 @@ tag: 'latest'
 parameters: "free_spirit"
 max_answer_token: 2000
 role: "Storyteller and Ghostwriter"
+generate_img: true
+look_at_gen: false
+checkpoint: 'Chilloutmix.safetensors'
+image_size: 512

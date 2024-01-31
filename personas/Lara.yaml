@@ -7,3 +7,7 @@ model: "TheBloke_Chronos-Beluga-v2-13B-GPTQ"
 max_answer_token: 2000
 parameters: "free_spirit"
 role: "Translator"
+generate_img: true
+look_at_gen: false
+checkpoint: 'protogenX53Photorealism_protogenX53.safetensors'
+image_size: 512

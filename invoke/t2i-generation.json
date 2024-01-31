@@ -1,0 +1,22 @@
+{
+  "prompt": "%%PROMPT%%",
+  "negative_prompt": "bad anatomy, extra limbs, extra fingers, extra arm, extra leg, too many fingers, low res, bad quality",
+  "seed": -1,
+  "steps": 50,
+  "cfg_scale": 11,
+  "width": 1024,
+  "height": 1024,
+  "restore_faces": true,
+  "checkpoint": "%%MODEL%%",
+  "sampler_name": "Euler",
+  "hr_scale": 2,
+  "sampler_name": "Euler",
+  "hr_scale": 2,
+  "hr_second_pass_steps": 30,
+  "enable_hr": true,
+  "firstphase_width": 512,
+  "firstphase_height": 512,
+  "hr_upscaler": "Latent",
+  "denoising_strength": 0.7
+}
+

@@ -9,4 +9,5 @@ speaker: "p361"
 parameters: "free_spirit"
 max_answer_token: 2000
 role: "Super Intelligent AI"
-
+generate_img: false
+image_size: 512

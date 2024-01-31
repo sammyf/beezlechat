@@ -6,4 +6,4 @@ bot : '<im_start>bot: '
 loader: 'ollama'
 alpha_value: 1
 mode: raw
-stop: '<im_start>,<im_end>'
+stop: '<im_start>,<im_end>,System:,User:'

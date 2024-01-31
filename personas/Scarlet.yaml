@@ -9,3 +9,7 @@ max_answer_token: 2000
 parameters: "free_spirit"
 tag: 'latest'
 role: "Medical Advisor"
+generate_img: true
+look_at_gen: true
+checkpoint: 'opennijiV2_opennijiV2Release.safetensors'
+image_size: 512

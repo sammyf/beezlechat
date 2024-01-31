@@ -1,9 +1,11 @@
 import base64
+import hashlib
 import math
 import random
 import shutil
 import subprocess
 import sys, os
+import urllib
 from urllib.parse import quote
 
 import ffmpeg
@@ -163,11 +165,12 @@ def tabby_unload():
     """
     print(f"Unloading {model}")
     url = f"{oai_config['tby_server']}/v1/model/unload"
+    print(url)
     headers = {
         "Content-Type": "application/json",
         "x-admin-key": oai_config['tby_admin']
     }
-    response = requests.get(url, headers=headers)
+    response = requests.post(url, headers=headers)
 
 def ollama_restart():
     subprocess.run(["sudo", "/bin/systemctl", "restart", "ollama"])
@@ -338,7 +341,7 @@ def count_tokens(txt):
         return word_count(txt)
     return tabby_count_tokens(txt)
 
-def generate_chat_lines(user, bot, img_name=None):
+def generate_chat_lines(user, bot, upimg_name=None, genimg_name=None):
     """
     :param user: The user's message to be replaced in the chat line.
     :param bot: The bot's response to be replaced in the chat line.
@@ -346,16 +349,20 @@ def generate_chat_lines(user, bot, img_name=None):
     """
     ## moving the animation to the top of the screen and keeping the portrait
     ## in the chatlines
-    if img_name is not None:
+    if upimg_name is not None:
         with open('templates/upload.tpl.html', "r") as f:
             uploadTpl = f.read()
-        user = (uploadTpl.replace("%%imgname%%", img_name.replace("/","").replace("\\","")).
-                replace("%%user%%", user))
-
+        user = (uploadTpl.replace("%%imgname%%", upimg_name.replace("/","").replace("\\","")).
+                replace("%%user%%", user)).replace("%%rnd%%",str(random.randint(0,99999999999)))
+    if genimg_name is not None:
+        with open('templates/genimg.tpl.html', "r") as f:
+            uploadTpl = f.read()
+        bot = (uploadTpl.replace("%%imgname%%", genimg_name.replace("/","").replace("\\","").replace("generated","generated/")).
+                replace("%%bot%%", bot)).replace("%%rnd%%",str(random.randint(0,99999999999)))
     rs = (chat_line.replace("%%user%%", user)\
         .replace("%%bot%%", bot)\
         .replace('%%botname%%', persona_config["name"])
-          .replace("%%rnd%%", str(random.randint(0,9999999))))
+          .replace("%%rnd%%", str(random.randint(0,99999999999))))
     return rs
 
 """ 
@@ -515,13 +522,12 @@ def load_model(model):
     if model_config["loader"] == "tabby" and last_loader == "ollama":
         last_loader = "tabby"
         ollama_restart()
-    if model_config["loader"] == "ollama":
-        if last_loader == "tabby":
-            ollama_restart()
-            try:
-                tabby_unload()
-            except:
-                pass
+    elif model_config["loader"] == "ollama":
+        try:
+            tabby_unload()
+        except:
+            pass
+        last_loader = "ollama"
         loaded_model = persona_config["model"]
         print("\n\nloaded model :", loaded_model, "\n")
         return
@@ -537,7 +543,7 @@ def load_model(model):
     loaded_model = persona_config["model"]
     print("\n\nloaded model :", loaded_model,"\n")
 
-def configure(persona):
+def configure(persona, client=None):
     """
     :param persona: The name of the persona to configure. This is used to load the corresponding persona configuration file located in the "personas" directory.
     :return: The result of calling the generate_chat_lines method with the configured prompt and cut_output.
@@ -646,7 +652,7 @@ def run_w2l_api( target):
             os.remove("/media/GINTONIC/AIArtists/beezlechat/video/result.mp4")
         except:
             pass
-        video = ffmpeg.input(f"/media/GINTONIC/AIArtists/Wav2Lip/targets/{target}_idle_long.mp4").video
+        video = ffmpeg.input(f"video/{target}_idle.mp4").video
         audio = ffmpeg.input("/media/GINTONIC/AIArtists/beezlechat/audio/tts.wav").audio
         out = ffmpeg.output(video, audio, "/media/GINTONIC/AIArtists/beezlechat/video/result.mp4", vcodec='copy',
                             acodec='aac', strict='experimental')
@@ -684,17 +690,67 @@ def generate_tts(string):
         if system_config['do_wav2lip']:
             while not os.path.exists(output_file):
                 pass
-            run_w2l_api(persona_config['name'])
+            try:
+                run_w2l_api(persona_config['name'])
+            except:
+                print("w2l failed.")
+                system_config['do_wav2lip'] = False
     return output_file
 
 def generate_image(prompt, client):
-    clean_prompt = prompt[21:]
-    sdprompt = generate(f"write a stable diffusion prompt to generate {clean_prompt}", client, True)
-    with open("invoke/T2I-SD1.5.json", "r") as f:
-        invokePrompt = f.read().replace("%%PROMPT%%", sdprompt)
-    rs_raw  = requests.post('http://localhost:9090/api/v1/', data=json.dumps(invokePrompt, indent=4))
-    rs = json.loads(rs_raw)
-    
+    global persona_config, system_config, oai_config
+    if persona_config["generate_img"] == False:
+        generate_tts("I'm sorry, but there is no space left to load an image generator.")
+        return generate_chat_lines(f"{prompt}", f"I'm sorry, but there is no space left to load an image generator.")
+    pattern = ".*generate an image of (.+)$"
+    matches = re.match(pattern, prompt)
+    if matches is not None:
+        clean_prompt = matches.group(1)
+    else:
+        pattern = ".*\/imagine (.+)$"
+        matches = re.match(pattern, prompt)
+        if matches is not None:
+            clean_prompt = matches.group(1)
+        else:
+            print("Looking for a topic.")
+            topic = generate("what is the topic of this page? summarize the content of this random wikipedia page https://en.wikipedia.org/wiki/Special:Random", client, True)
+            clean_prompt = f" something about the topic mentioned in \"{topic}\""
+    sdprompt = generate(f"write a stable diffusion prompt to generate a high quality image of {clean_prompt}. Add keywords about the medium (for example: photography, drawing, painting, 3D, ...)"
+                        f"style (for example: photo realistic, cartoon, anime, surrealistic, pointillism, etc), detail level and lighting at the end of the prompt.", client, True)
+    print(f"prompt : '{clean_prompt}'")
+    with (open("invoke/t2i-generation.json", "r") as f):
+        invokePrompt = json.load(f)
+    sdprmpt = sdprompt.replace("\n","").replace("\"","'")
+    invokePrompt["prompt"] = invokePrompt["prompt"].replace("%%PROMPT%%", sdprmpt)
+    invokePrompt["checkpoint"] = invokePrompt["checkpoint"].replace("%%MODEL%%", persona_config["checkpoint"])
+    invokePrompt["firstphase_width"] =  persona_config["image_size"]
+    invokePrompt["firstphase_height"] = persona_config["image_size"]
+    print(f"\n:::::::::::\n{json.dumps(invokePrompt, indent=4)}\n::::::::::::::\n")
+    rs_raw = requests.post(f'{oai_config["a1111"]}sdapi/v1/txt2img', json=invokePrompt, headers={"Content-Type": "application/json"})
+    rs = json.loads(rs_raw.text)
+
+    # Get current date as a string
+    current_date = str(datetime.datetime.now())
+    # Combine data with current date
+    combined_data = f"{sdprmpt}{current_date}"
+    # Generate SHA256 hash
+    hash_object = hashlib.sha256(combined_data.encode())
+    hex_dig = hash_object.hexdigest()
+    fname = f"generated/{hex_dig}.png"
+    img = base64.b64decode(rs['images'][0])
+    try:
+        with open(f"uploads/{fname}", 'wb') as f:
+            f.write(img)
+    except:
+        generate_tts("Something went wrong!")
+        return generate_chat_lines(prompt, "Something went wrong.", client)
+
+    generate_tts(f"Here is what I came up with : '{sdprompt}'")
+    genlines = generate_chat_lines(f"{prompt}", f"Here is what I came up with : '{sdprompt}'", None, fname)
+    if persona_config['look_at_gen'] == True:
+        analysis = image_analysis(rs['images'][0], fname, client, "This is the image that was generated based on your prompt.")
+    generate_tts(f"Here is what I came up with : '{sdprompt}'")
+    return genlines
 def check_meta_cmds(prompt, client):
     """
     Check if prompt matches any meta commands and return a corresponding action.
@@ -708,7 +764,9 @@ def check_meta_cmds(prompt, client):
     'https://news.bbc.co.uk',
     'https://www.aljazeera.com',
     'https://www.npr.org',
-    'https://www.tageschau.de'
+    'https://www.tageschau.de',
+    'https://news.google.com',
+    'https://en.wikinews.org/wiki/Main_Page'
     ]
     display_personas = [
         'who can i talk to?'
@@ -716,16 +774,17 @@ def check_meta_cmds(prompt, client):
     clean_prompt = prompt.lower().strip()
     print("\n\nClean Prompt :", clean_prompt, "\n\n")
     if clean_prompt == ("forget everything"):
-        return (amnesia, client)
+        return (amnesia, None)
     if clean_prompt in display_personas:
-        print("display_pesonas")
-        return (personas_table, client )
+        print("display_personas")
+        return (personas_table, None)
     if clean_prompt.startswith("check the news."):
         source = random.choice(news_sources)
         print(f"\nNews Source selected : {source}\n")
-        return (None,f"Read {source}. tell me about the headlines you found there. Translate them to English if they aren't in English")
-    if clean_prompt.startswith("generate an image of "):
-        return (generate_image, None)
+        return (None,f"Read {source}. summarize and give me your thoughts about the five first headlines. Translate them to English if they aren't in English")
+    if "generate an image of" in clean_prompt or "/imagine" in clean_prompt:
+        print("imagine found.")
+        return (generate_image, clean_prompt)
     if "ask wikipedia about " in clean_prompt:
         pattern = ".*ask wikipedia about [\'\"]([ a-zA-Z0-9_\-\']+)[\'\"].*"
         matches = re.match(pattern, clean_prompt)
@@ -758,11 +817,15 @@ def generate(prompt, client, raw=False):
     if initialized == False:
         configure(system_config['persona'])
 
-    initialize_historyMP(client)
+    if client not in historyMP:
+        initialize_historyMP(client)
 
     (cmd, prmtr) = check_meta_cmds(prompt, client)
     if cmd != None:
-        return htmlize(cmd(prmtr))
+        if prmtr != None:
+            return htmlize(cmd(prmtr, client))
+        else:
+            return htmlize(cmd(client))
     elif prmtr != None:
         prompt = prmtr
 
@@ -829,7 +892,7 @@ def generate(prompt, client, raw=False):
     save_log(original_prompt, cut_output)
     return generate_chat_lines(original_prompt, htmlize(cut_output))
 
-def image_analysis(img, img_name, client):
+def image_analysis(img, img_name, client, user_prompt=None):
     global persona_config, system_config, historyMP, usernames
     url = f"{oai_config['ollama_server']}/api/chat"
     print("len: ", len(img))
@@ -861,14 +924,21 @@ def image_analysis(img, img_name, client):
     rs_stream = requests.post(url,  headers=headers, data=jsdata, stream=False)
     response = rs_stream.json()['message']['content']
 
-    initialize_historyMP(client)
-    historyMP[client].append(["u","describe this image. [image file removed from chat history]"])
+    if client not in historyMP:
+        initialize_historyMP(client)
+    user_output = user_prompt
+    if user_prompt == None:
+        user_prompt = "[System: This is your analysis of a file the user just uploaded.]"
+        user_output ="describe this image in great details, please."
+
+    historyMP[client].append(["u", user_prompt])
     historyMP[client].append(["b",response])
     generate_tts(response)
-    return generate_chat_lines("describe this image in great details, please.", response, img_name)
+
+    return generate_chat_lines(user_output, response, urllib.parse.quote(img_name))
 
 def initialize_historyMP(client):
-    global system_config
+    global system_config, historyMP
     historyMP[client] = []
     usernames[client] = system_config['username']
 
@@ -1219,6 +1289,15 @@ def get_uploads_action(img):
         :return: The face image associated with the specified persona in PNG format.
     """
     filename=f"./uploads/{img}"
+    return send_file(filename, mimetype='image')
+
+@app.route('/uploads/generated/<img>', methods=['GET'])
+def get_generated_action(img):
+    """
+        :param persona: The persona of the face image to retrieve. It is a string representing the persona.
+        :return: The face image associated with the specified persona in PNG format.
+    """
+    filename=f"./uploads/generated/{img}"
     return send_file(filename, mimetype='image')
 
 @app.route('/imgs/spinner.gif', methods=['GET'])

@@ -8,3 +8,7 @@ parameters: "free_spirit"
 max_answer_token: 2000
 tag: 'latest'
 role: "Quick-witted Broody AI"
+generate_img: true
+look_at_gen: true
+checkpoint: 'perfectdeliberate_v40.safetensors'
+image_size: 512

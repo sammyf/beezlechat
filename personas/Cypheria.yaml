@@ -8,3 +8,8 @@ parameters: "free_spirit"
 max_answer_token: 2000
 tag: 'latest'
 role: "Coding Assistant"
+generate_img: true
+look_at_gen: true
+checkpoint: 'cyberrealistic_v30.safetensors'
+image_size: 512
+

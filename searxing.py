@@ -58,8 +58,8 @@ class SearXing:
         with open(self.CONFIG_FILE) as f:
             self.config = yaml.safe_load(f)
 
-    def ask_wikipedia_search(self, query):
-        url = f"\nhttps://en.wikipedia.org/w/api.php?action=opensearch&search={quote(query)}&limit=1&namespace=0&format=json"
+    def ask_wikipedia_search(self, query, client=None):
+        url = f"\nhttps://en.wikipedia.org/w/api.php?action=opensearch&search={query}&limit=1&namespace=0&format=json"
         try:
             response = requests.get(url)
         except:

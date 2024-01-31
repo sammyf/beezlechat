@@ -38,8 +38,8 @@
 
 <div id="keepalive">
     KeepAlive:&nbsp;
-    <input id="keepalive_from" class="keepalive" type="text" value="200">
-    <input id="keepalive_to" class="keepalive" type="text" value="290">
+    <input id="keepalive_from" class="keepalive" type="text" value="120">
+    <input id="keepalive_to" class="keepalive" type="text" value="180">
 </div>
 <img id="spinner" class="htmx-indicator" src="/imgs/spinner.gif">
 <div id="input_container">
@@ -63,11 +63,21 @@
 
     w2l = document.getElementById('w2l');
     idlevid = document.getElementById("idlevid")
+    w2l.pause()
+    document.getElementById('tts').pause()
+
     w2l.addEventListener('ended', use_idle, false);
     w2l.addEventListener('loadeddata', switch_vid, false);
+    document.getElementById('tts').addEventListener('ended', autonomyTimer, false);
+
     function use_idle() {
         w2l.style.display = 'none';
         idlevid.style.display = 'block';
+        if(toggle_autonomy) {
+            // reset afk time and autonomyTimer
+            afktime = 0
+            autonomyTimer()
+        }
     }
 
     function switch_vid() {
@@ -95,14 +105,50 @@
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
+    let keepAliveElement = 0
+    let keepAlivePrompts = [
+            "/imagine",
+            "Write a creative story involving the topic of this random wikipedia page https://en.wikipedia.org/wiki/Special:Random ",
+            "generate an image of your previous answer." ,
+            "/imagine",
+            "summarize and write your thought on the content of this random wikipedia page https://en.wikipedia.org/wiki/Special:Random ",
+            "generate an image of your previous answer." ,
+            "/imagine",
+            "summarize and write your thought on the first five headlines from https://news.yahoo.com",
+            'Write a creative story involving the headlines from https://news.yahoo.com',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://news.bbc.co.uk',
+            'Write a creative story involving the headlines from https://news.bbc.co.uk',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://www.aljazeera.com',
+            'Write a creative story involving the headlines from https://www.aljazeera.com',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://www.npr.org',
+            'Write a creative story involving the headlines from https://www.npr.org',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://www.tageschau.de',
+            'Write a creative story involving the headlines from https://www.tageschau.de',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://news.google.com',
+            'Write a creative story involving the headlines from https://news.google.com',
+            "generate an image of your previous answer." ,
+            "/imagine",
+            'summarize and write your thought on the first five headlines from https://en.wikinews.org/wiki/Main_Page',
+            'Write a creative story involving the headlines from https://en.wikinews.org/wiki/Main_Page',
+            "generate an image of your previous answer." 
+    ]
     function autonomy() {
+        clearTimeout(timer);
         afktime += lastDelay
-        document.getElementById("prompt").value = "[System Message:this is a Keep Alive Ping. The user is AFK." +
-            "Write a creative story involving the topic of this random wikipedia page https://en.wikipedia.org/wiki/Special:Random "
+        document.getElementById("prompt").value = "" +
+            keepAlivePrompts[keepAliveElement]
+        keepAliveElement=(keepAliveElement+1)%keepAlivePrompts.length
         document.getElementById("sendbutton").click()
-        if (toggle_autonomy) {
-            autonomyTimer()
-        }
     }
 
     function autonomyTimer() {
@@ -111,6 +157,7 @@
         let maxSeconds = parseInt(document.getElementById("keepalive_to").value)
         if(minSeconds == "0") return;
         randomSeconds = getRandomInt(minSeconds, maxSeconds);
+        console.log("Next KA in ", randomSeconds, "seconds")
         lastDelay = randomSeconds
         timer = setTimeout(() => {
             autonomy();
@@ -159,15 +206,11 @@
                 }
                 break;
             default:
+                autonomyTimer();
                 break;
         }
         document.getElementById("messages").scrollTo(0, document.getElementById("messages").scrollHeight);
         document.getElementById("prompt").focus()
-        if(toggle_autonomy) {
-            // reset afk time and autonomyTimer
-            afktime = 0
-            autonomyTimer()
-        }
     })
 
     document.addEventListener('htmx:afterRequest', function(evt) {

@@ -8,3 +8,5 @@ max_answer_token: 2000
 tag: "latest"
 parameters: "free_spirit"
 role: "Chilled Super Intelligent AI"
+generate_img: false
+image_size: 512

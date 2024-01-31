@@ -9,4 +9,8 @@ max_answer_token: 2000
 disable_w2l: true
 tag: "latest"
 role: "Uninhibited AI with a Goddess Complex"
+generate_img: true
+look_at_gen: false
+checkpoint: 'thisisreal_v20.safetensors'
+image_size: 512
 

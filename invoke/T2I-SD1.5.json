@@ -1,0 +1,15 @@
+{
+  "prompt": "%%PROMPT%%",
+  "negative_prompt": "bad anatomy, extra limbs, extra fingers, extra arm, extra leg, too many fingers, low res, bad quality, ugly",
+  "styles": [
+    "photo realistic, detailed, intricate design, photography, moody rim lights, dramatic cinematic lighting"
+  ],
+  "seed": -1,
+  "steps": 40,
+  "cfg_scale": 7,
+  "width": 512,
+  "height": 512,
+  "restore_faces": true,
+  "checkpoint": "526mixV15_v14.safetensors"
+}
+

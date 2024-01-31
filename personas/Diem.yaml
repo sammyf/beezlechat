@@ -8,3 +8,7 @@ speaker: "p287"
 parameters: "free_spirit"
 max_answer_token: 512
 role: "Game Master"
+generate_img: true
+look_at_gen: true
+checkpoint: 'lazymixRealAmateur_v30b.safetensors'
+image_size: 512

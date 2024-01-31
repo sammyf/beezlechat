@@ -1,0 +1,12 @@
+max_seq_len: 4096
+tag: 'latest'
+system: '<im_start>system: 
+%%prompt%%<im_end>'
+user: '<im_start>user: 
+%%prompt%%<im_end>'
+bot : '<im_start>assistant:
+'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: '<im_end>'
