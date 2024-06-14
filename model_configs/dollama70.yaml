@@ -1,0 +1,15 @@
+max_seq_len: 8192
+tag: 'latest'
+system: '<|start_header_id|>system<|end_header_id|>
+%%prompt%%<|eot_id|>
+'
+user: '<|start_header_id|>user<|end_header_id|>
+%%prompt%%<|eot_id|>
+'
+bot : '<|start_header_id|>assistant<|end_header_id|>
+%%prompt%%<|eot_id|>
+'
+loader: 'ollama'
+alpha_value: 1
+mode: raw
+stop: '<|eot_id|>'

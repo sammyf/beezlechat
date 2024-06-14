@@ -1,0 +1,13 @@
+max_seq_len: 4096
+alpha_value: 1
+mode: 'raw'
+system: '<|system|>
+%%prompt%%<|endoftext|>'
+user: '<|user|>
+%%prompt%%<|endoftext|>'
+bot: '<|assistant|>
+'
+loader: 'ollama'
+tag: 'latest'
+stop: '<|endoftext|>'
+

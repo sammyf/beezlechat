@@ -3,5 +3,5 @@ alpha_value: 1
 user: '### Instruction:\n %%prompt%%\n'
 bot: '### Response:\n'
 mode: 'raw'
-loader: 'ollama'
-stop: '<s>,### Instruction:,Received,[end of conversation],<|im_end|>'
+loader: 'tabby'
+stop: '<s>,### Instruction:,Received,<|im-end|>'

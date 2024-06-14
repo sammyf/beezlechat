@@ -17,6 +17,6 @@ PyPDF2
 exllamav2
 openai-whisper
 ffmpeg-python
-langchain
-langchain_community
-chromadb
+#langchain
+#langchain_community
+#chromadb

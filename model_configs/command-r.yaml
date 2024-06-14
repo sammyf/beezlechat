@@ -1,0 +1,9 @@
+max_seq_len: 131000
+alpha_value: 1
+mode: 'raw'
+system: '<|START_OF_TURN_TOKEN|><|SYSTEM_TOKEN|>%%prompt%%<|END_OF_TURN_TOKEN|>'
+user: '<|START_OF_TURN_TOKEN|><|USER_TOKEN|>%%prompt%%<|END_OF_TURN_TOKEN|>'
+bot: '}<|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>'
+loader: 'ollama'
+tag: 'latest'
+stop: '<|END_OF_TURN_TOKEN|>'

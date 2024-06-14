@@ -9,7 +9,7 @@ import urllib
 from urllib.parse import quote
 
 import ffmpeg
-from langchain_community.llms.ollama import Ollama
+#from langchain_community.llms.ollama import Ollama
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from flask import Flask, request, send_file, jsonify, render_template, send_from_directory
@@ -21,7 +21,8 @@ import moztts
 import re
 import markdown
 from searxing import SearXing
-from ollama_langchain import OllamaLangchain
+#from langchain_community.llms import Ollama as OllamaLangchain
+#from ollama_langchain import OllamaLangchain
 import sys
 import datetime
 import signal
@@ -180,8 +181,9 @@ def ollama_generate(original_prompt, client):
     rs = {
         "model": persona_config["model"]+":"+persona_config["tag"],
         "messages": [],
-        "stream": True,
+        "stream": False,
         "context": "",
+        "keep_alive": 100000,
         "options": {}
     }
     with open(f"parameters/{model_config['loader']}_{persona_config['parameters']}.yaml") as f:
@@ -221,7 +223,7 @@ def ollama_generate(original_prompt, client):
     # print( "\n:::::::::\n")
 
     # response = requests.post(url, data=json.dumps(rs, indent=0))
-    rs_stream = requests.post(url, data=json.dumps(rs, indent=0), stream=True)
+    rs_stream = requests.post(url, data=json.dumps(rs, indent=0), stream=False)
     response = ""
     js = ""
     if rs_stream.ok:
@@ -263,7 +265,7 @@ def tabby_generate(original_prompt,client):
     now = current_time.strftime("%H:%M:%S on %A, %d %B %Y")
 
     if original_prompt.strip() != "":
-        prompt = f"It is {now}\n.The user's name is {usernames[client]}\nThe chat so far :\n" + generate_history_string(client) + "\n" + \
+        prompt = f"It is {now}\n.The user's name is {usernames[client]}.\n{persona_config['context']}\nThe chat so far :\n" + generate_history_string(client) + "\n" + \
                       model_config["bot"]
     else:
         prompt = "The chat so far :\n" + generate_history_string(client) + "\nplease continue." + model_config["bot"]
@@ -797,6 +799,17 @@ def check_meta_cmds(prompt, client):
             if matches is not None:
                 query =  matches.group(1)
                 return (None, Searxing.ask_wikipedia_search(query))
+    if clean_prompt.startswith("switch to "):
+        model_name_raw = clean_prompt.split("switch to ")[1]
+        model_name = model_name_raw
+        model_tag = "latest"
+        if ":" in model_name_raw:
+            model_name = model_name_raw.split(":")[0]
+            model_tag = model_name_raw.split(":")[1]
+        persona_config["model"] = model_name
+        persona_config["tag"] = model_tag
+        load_model(model_name)
+        return(None,None)
     pattern = ".*[iI] summon ([a-zA-Z_0-9\-]+).*"
     matches = re.match(pattern, clean_prompt)
     if matches is not None and len(matches.groups()) > 0:
